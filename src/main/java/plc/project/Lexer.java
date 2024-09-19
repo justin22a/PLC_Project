@@ -100,7 +100,17 @@ public final class Lexer {
      * true. Hint - it's easiest to have this method simply call peek.
      */
     public boolean match(String... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in Lecture)
+        for (String pattern : patterns) {
+            // we can just call peek, only throw one pattern at a time so we can identify which one matches
+            // when we have matching advance by the length of pattern
+            if (peek(pattern)) {
+                for (int i = 0; i < pattern.length(); i++) {
+                    chars.advance();
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
