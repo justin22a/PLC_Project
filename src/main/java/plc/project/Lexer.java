@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,7 +29,19 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens = new ArrayList<>();
+
+        while (chars.has(0)){
+            if (peek(" ", "\b", "\n", "\r", "\t")) {  // Check for all whitespace characters
+                // If the current character is a whitespace, advance past it
+                // ONLY ADVANCE ONCE
+                chars.advance();
+            } else {
+                // lextoken will add a token. indexing will be taken care of inside that function
+                tokens.add(lexToken());
+            }
+        }
+        return tokens;
     }
 
     /**
