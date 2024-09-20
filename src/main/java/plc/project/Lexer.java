@@ -1,7 +1,11 @@
 package plc.project;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The lexer works through three main functions:
@@ -53,23 +57,55 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        throw new UnsupportedOperationException(); //TODO
+        if (match("[A-Za-z_] [A-Za-z0-9_-]*")) {
+            return lexIdentifier();
+        }
+        else if (match("'0' | [+-]? [1-9] [0-9]*")) {
+            // integer? TODO
+            return lexNumber();  // lexNumber handles both integers and decimals
+        }
+        else if (match("[+-]? ('0' | [1-9] [0-9]*) '.' [0-9]+")) {
+            // decimal? TODO
+            return lexNumber();  // lexNumber handles both integers and decimals
+        }
+        else if (match("['] ([^'\\] | '\\' [bnrt'\"\\]) [']")) {
+            return lexCharacter();
+        }
+        else if (match("'\"' ([^\"\n\r\\] | '\\' [bnrt'\"\\])* '\"'")) {
+            return lexString();
+        }
+        else if (match("[<>!=] '='? | '&&' | '||' | '.'")) {
+            return lexOperator();
+        }
+        // If no valid token is found, throw a ParseException
+        else {
+            throw new ParseException("Unexpected character or invalid token", chars.index);
+        }
     }
 
+
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        // at this point, the match function has already advanced the stream
+        // we can directly emit the identifier token based on the current state
+        // repeat for other Token return type functions
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        // either the integer or decimal number in the `match()` so check for a .
+        if (chars.input.contains(".")) {
+            return chars.emit(Token.Type.DECIMAL); // If there's a decimal point, it's a DECIMAL
+        } else {
+            return chars.emit(Token.Type.INTEGER); // Otherwise, it's an INTEGER
+        }
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        return chars.emit(Token.Type.CHARACTER);
     }
 
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        return chars.emit(Token.Type.STRING);
     }
 
     public void lexEscape() {
@@ -77,7 +113,7 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
@@ -85,26 +121,41 @@ public final class Lexer {
      * which should be a regex. For example, {@code peek("a", "b", "c")} would
      * return true if the next characters are {@code 'a', 'b', 'c'}.
      */
+
+    public String get_next_string () {
+        //grab a substring up until the next space
+        StringBuilder current = new StringBuilder();  // Use StringBuilder for efficient concatenation
+        int iterate_index = 0;
+
+        while (iterate_index + chars.index < chars.length && chars.has(iterate_index)) {
+            char currentChar = chars.get(iterate_index);
+            if (currentChar == ' ' || currentChar == '\b' || currentChar == '\n' || currentChar == '\r' || currentChar == '\t') {
+                break;
+            }
+            current.append(currentChar);
+            iterate_index++;
+        }
+
+        // check our resulting substring against a regex pattern
+        return current.toString();
+    }
+
     public boolean peek(String... patterns) {
         // try all the patterns to see if any match
+        String next_string = get_next_string();
+        chars.set_next_string_length(next_string.length());
+
         for (String pattern : patterns) {
-            // chars is everything that we are lexing. we are given a raw string and turn it into a char stream
-            if (chars.has(pattern.length() - 1)) {
-                boolean matches = true;
-                for (int i = 0; i < pattern.length(); i++) {
-                    // chars.get(i) will get the ith index plus the current offset in chars.
-                    // so if we are at position 5, it will return the char at 5 + i
-                    // all of this is handled inside the class
-                    if (chars.get(i) != pattern.charAt(i)) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) {
-                    return true;
-                }
+            Pattern regexPattern = Pattern.compile(pattern);
+
+            Matcher matcher = regexPattern.matcher(next_string);
+
+            // if we find a match return true
+            if (matcher.matches()) {
+                return true;
             }
         }
+
         return false;
     }
     /**
@@ -117,9 +168,11 @@ public final class Lexer {
             // we can just call peek, only throw one pattern at a time so we can identify which one matches
             // when we have matching advance by the length of pattern
             if (peek(pattern)) {
-                for (int i = 0; i < pattern.length(); i++) {
+
+                for (int i = 0; i < chars.next_string_length; i++) {
                     chars.advance();
                 }
+                chars.reset_next_string_length();
                 return true;
             }
         }
@@ -139,6 +192,15 @@ public final class Lexer {
         private final String input;
         private int index = 0;
         private int length = 0;
+        private int next_string_length = 0;
+
+        public void set_next_string_length(int length) {
+            this.next_string_length = length;
+        }
+
+        public void reset_next_string_length() {
+            this.next_string_length = 0;
+        }
 
         public CharStream(String input) {
             this.input = input;
