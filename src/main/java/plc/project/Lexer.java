@@ -1,9 +1,7 @@
 package plc.project;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +18,8 @@ import java.util.regex.Pattern;
  * The {@link #peek(String...)} and {@link #match(String...)} functions are
  * helpers you need to use, they will make the implementation easier.
  */
+
+
 public final class Lexer {
 
     private final CharStream chars;
@@ -57,24 +57,24 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        if (match("[A-Za-z_] [A-Za-z0-9_-]*")) {
+        if (match("[A-Za-z_][A-Za-z0-9_-]*")) {
             return lexIdentifier();
         }
-        else if (match("'0' | [+-]? [1-9] [0-9]*")) {
+        else if (match("'0'|[+-]?[1-9][0-9]*")) {
             // integer? TODO
             return lexNumber();  // lexNumber handles both integers and decimals
         }
-        else if (match("[+-]? ('0' | [1-9] [0-9]*) '.' [0-9]+")) {
+        else if (match("[+-]?(0|[1-9][0-9]*)\\.[0-9]+")) {
             // decimal? TODO
             return lexNumber();  // lexNumber handles both integers and decimals
         }
-        else if (match("['] ([^'\\] | '\\' [bnrt'\"\\]) [']")) {
+        else if (match("[']([^'\\\\]|\\\\[bnrt'\"])[']\n")) {
             return lexCharacter();
         }
-        else if (match("'\"' ([^\"\n\r\\] | '\\' [bnrt'\"\\])* '\"'")) {
+        else if (match("\"([^\"\\n\\r\\\\]|\\\\[bnrt'\"])*\"\n")) {
             return lexString();
         }
-        else if (match("[<>!=] '='? | '&&' | '||' | '.'")) {
+        else if (match("[<>!=]=?|&&|\\|\\||.\n")) {
             return lexOperator();
         }
         // If no valid token is found, throw a ParseException
@@ -228,7 +228,5 @@ public final class Lexer {
             skip();
             return new Token(type, input.substring(start, index), start);
         }
-
     }
-
 }
