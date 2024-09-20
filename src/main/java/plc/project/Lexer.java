@@ -36,7 +36,9 @@ public final class Lexer {
         List<Token> tokens = new ArrayList<>();
 
         while (chars.has(0)){
+
             if (peek(" ", "\b", "\n", "\r", "\t")) {  // Check for all whitespace characters
+
                 // If the current character is a whitespace, advance past it
                 // ONLY ADVANCE ONCE
                 chars.advance();
@@ -45,6 +47,7 @@ public final class Lexer {
                 tokens.add(lexToken());
             }
         }
+
         return tokens;
     }
 
@@ -122,22 +125,21 @@ public final class Lexer {
      * return true if the next characters are {@code 'a', 'b', 'c'}.
      */
 
-    public String get_next_string () {
-        //grab a substring up until the next space
-        StringBuilder current = new StringBuilder();  // Use StringBuilder for efficient concatenation
-        int iterate_index = 0;
+    public String get_next_string() {
+        StringBuilder current = new StringBuilder();
+        int offset = 0;
 
-        while (iterate_index + chars.index < chars.length && chars.has(iterate_index)) {
-            char currentChar = chars.get(iterate_index);
-            if (currentChar == ' ' || currentChar == '\b' || currentChar == '\n' || currentChar == '\r' || currentChar == '\t') {
+        // Get characters until a space, or whitespace is found
+        while (chars.has(offset)) {
+            char currentChar = chars.get(offset);
+            if (Character.isWhitespace(currentChar)) {
                 break;
             }
             current.append(currentChar);
-            iterate_index++;
+            offset++;
         }
 
-        // check our resulting substring against a regex pattern
-        return current.toString();
+        return current.toString();  // Return the segment for matching
     }
 
     public boolean peek(String... patterns) {
