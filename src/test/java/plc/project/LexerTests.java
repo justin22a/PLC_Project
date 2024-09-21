@@ -89,7 +89,8 @@ public class LexerTests {
                 Arguments.of("Complex Operator", "==", true),
                 Arguments.of("Invalid Whitespace as Operator", " ", false),
                 Arguments.of("Complex Operator", "&&", true),
-                Arguments.of("Complex Operator", "||", true)
+                Arguments.of("Complex Operator", "||", true),
+                Arguments.of("Complex Operator", "|+", false)
         );
     }
 
