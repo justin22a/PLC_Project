@@ -86,10 +86,10 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Single Character Operator", "+", true),
                 Arguments.of("Single Character Operator", "-", true),
-                Arguments.of("Complex Operator", "&&", true),
-                Arguments.of("Complex Operator", "||", true),
                 Arguments.of("Complex Operator", "==", true),
-                Arguments.of("Invalid Whitespace as Operator", " ", false)
+                Arguments.of("Invalid Whitespace as Operator", " ", false),
+                Arguments.of("Complex Operator", "&&", true),
+                Arguments.of("Complex Operator", "||", true)
         );
     }
 

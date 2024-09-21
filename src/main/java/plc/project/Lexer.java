@@ -148,8 +148,11 @@ public final class Lexer {
         if (peek("[<>!=]", "=")) {
             match("[<>!=]", "=");
         }
-        else if (peek("&&")) {
-            match("&&");
+        else if (peek("&", "&")) {
+            match("&", "&");
+        }
+        else if (peek("|", "|")) {
+            match("|", "|");
         }
         else {
             match(".");
