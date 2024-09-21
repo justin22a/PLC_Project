@@ -162,6 +162,7 @@ public class LexerTests {
     private static Stream<Arguments> testString() {
         return Stream.of(
                 Arguments.of("Empty", "\"\"", true),
+                Arguments.of("Weird new line" , "\"weird \n new line\"" , false),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
                 Arguments.of("Unterminated", "\"unterminated", false),
