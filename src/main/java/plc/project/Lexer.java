@@ -52,15 +52,24 @@ public final class Lexer {
     }
 
     public Token lexNumber() {
-        // check for a positive or minus sign first
-        // despite + being uncommon still going to check for it in case
+        // Check for a positive or minus sign first
         if (peek("[+\\-]")) {
             match("[+\\-]");
         }
-        // grab our numbers before our decimal if there is one, if not it will grab the entire number
-        while (peek("\\d")) {
-            match("\\d");
+        // Check for leading zeros and handle them
+        if (peek("0")) {
+            match("0");
+            // If we see a digit after the leading zero, it's an invalid integer (unless it's a decimal)
+            if (peek("\\d")) {
+                throw new ParseException("Invalid integer with leading zeros", chars.index);
+            }
+        } else {
+            // Grab digits for the integer part before the decimal point
+            while (peek("\\d")) {
+                match("\\d");
+            }
         }
+        // Check if it's a decimal
         if (peek("[.]", "\\d")) {
             match("[.]");
             while (peek("\\d")) {
@@ -68,8 +77,10 @@ public final class Lexer {
             }
             return chars.emit(Token.Type.DECIMAL);
         }
+
         return chars.emit(Token.Type.INTEGER);
     }
+
 
     public Token lexCharacter() {
         // advance on the stream with match
