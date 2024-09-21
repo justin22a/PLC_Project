@@ -13,19 +13,15 @@ public final class Lexer {
 
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<Token>();
-
         while (peek(".")) {
             if (peek("[ \b\n\r\t]")) {
                 chars.advance();
                 chars.skip();
-
             }
             else {
                 tokens.add(lexToken());
             }
         }
-
-
         return tokens;
     }
 
@@ -33,34 +29,97 @@ public final class Lexer {
         if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         }
-
         else if (peek("[+\\-]", "[0-9]") || peek("[0-9]")) {
             return lexNumber();
         }
-
         else if (peek("\'")) {
             return lexCharacter();
         }
-
         else if (peek("\"")) {
             return lexString();
         }
-
         else {
             return lexOperator();
         }
     }
 
     public Token lexIdentifier() {
+        // keep advancing our stream until the pattern is no more for our identifier
+        while (peek("[A-Za-z_0-9-]")) {
+            match("[A-Za-z_0-9-]");
+        }
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
+        // check for a positive or minus sign first
+        // despite + being uncommon still going to check for it in case
+        if (peek("[+\\-]")) {
+            match("[+\\-]");
+        }
+        // grab our numbers before our decimal if there is one, if not it will grab the entire number
+        while (peek("\\d")) {
+            match("\\d");
+        }
+        if (peek("[.]", "\\d")) {
+            match("[.]");
+            while (peek("\\d")) {
+                match("\\d");
+            }
+            return chars.emit(Token.Type.DECIMAL);
+        }
+        return chars.emit(Token.Type.INTEGER);
     }
 
     public Token lexCharacter() {
+        // advance on the stream with match
+        if (peek("\'")) {
+            match("\'");
+        }
+        //
+        if (peek("\\\\")) {
+            lexEscape();
+        }
+        else if (peek("[^\'\\n\\r\\\\]"))  {
+            match("[^\'\\n\\r\\\\]");
+        }
+        else {
+            throw new ParseException("Illegal Character", chars.index);
+        }
+        if (peek("\'")) {
+            match("\'");
+            return chars.emit(Token.Type.CHARACTER);
+        }
+        throw new ParseException("this is not a valid character", chars.index);
     }
 
     public Token lexString() {
+        // advance on our open quote
+        if (peek("\"")) {
+            match("\"");
+        }
+        // go until we have a closed quote, new line, or a carriage return /r
+        while (peek("[^\"\\n\\r]")) {
+            // if we have an escape handle it
+            if (peek("\\\\")) {
+                // advance on an escape
+                lexEscape();
+            }
+            else {
+                // match any character
+                match(".");
+            }
+        }
+        // make sure we find the closing quote and add it
+        if (peek("\"")) {
+            match("\"");
+        }
+        else {
+            // if we never came across the closing quote or had a carriage return or new line before it this will execute
+            match(".");
+            throw new ParseException("Unterminated String", chars.index);
+        }
+        return chars.emit(Token.Type.STRING);
     }
 
     public void lexEscape() {
@@ -69,16 +128,18 @@ public final class Lexer {
             match("\\\\", "[bnrt\'\"\\\\]");
         }
         else {
-            match(".", ".");
+            match(".");
             throw new ParseException("not a possible escape", chars.index);
         }
     }
 
     public Token lexOperator() {
-        if (peek("[<>!=]", "="))
+        if (peek("[<>!=]", "=")) {
             match("[<>!=]", "=");
-        else
+        }
+        else {
             match(".");
+        }
         return chars.emit(Token.Type.OPERATOR);
     }
 
@@ -145,3 +206,7 @@ public final class Lexer {
         }
     }
 }
+
+
+
+// try using the lex escape
