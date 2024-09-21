@@ -14,6 +14,87 @@ public class LexerTests {
 
     @ParameterizedTest
     @MethodSource
+    void testIntegerEdgeCases(String test, String input, boolean success) {
+        test(input, Token.Type.INTEGER, success);
+    }
+
+    private static Stream<Arguments> testIntegerEdgeCases() {
+        return Stream.of(
+                Arguments.of("Negative Zero", "-0", true),
+                Arguments.of("Positive Zero", "+0", true),
+                Arguments.of("Zero with Trailing Zero", "0", true),
+                Arguments.of("Leading Negative with Trailing Zero", "-1000", true),
+                Arguments.of("Leading Positive with Trailing Zero", "+5000", true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testDecimalEdgeCases(String test, String input, boolean success) {
+        test(input, Token.Type.DECIMAL, success);
+    }
+
+    private static Stream<Arguments> testDecimalEdgeCases() {
+        return Stream.of(
+                Arguments.of("Zero Decimal", "0.0", true),
+                Arguments.of("Negative Zero Decimal", "-0.0", true),
+                Arguments.of("Positive Decimal with Trailing Zeros", "100.00", true),
+                Arguments.of("Negative Decimal with Leading Digit", "-5.25", true),
+                Arguments.of("Valid Decimal", "3.14159", true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testStringEdgeCases(String test, String input, boolean success) {
+        test(input, Token.Type.STRING, success);
+    }
+
+    private static Stream<Arguments> testStringEdgeCases() {
+        return Stream.of(
+                Arguments.of("String with Escape Sequence", "\"Hello\\tWorld!\"", true),
+                Arguments.of("String with Quotes", "\"She said, \\\"Hello!\\\"\"", true),
+                Arguments.of("Empty String", "\"\"", true),
+                Arguments.of("Unterminated String with Escape", "\"Hello\\nWorld", false),
+                Arguments.of("Invalid Escape Sequence", "\"Hello\\xWorld\"", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testCharacterEdgeCases(String test, String input, boolean success) {
+        test(input, Token.Type.CHARACTER, success);
+    }
+
+    private static Stream<Arguments> testCharacterEdgeCases() {
+        return Stream.of(
+                Arguments.of("Valid Character", "'a'", true),
+                Arguments.of("Valid Escape Character", "'\\n'", true),
+                Arguments.of("Empty Character", "''", false),
+                Arguments.of("Multiple Characters", "'abc'", false),
+                Arguments.of("Invalid Escape Sequence", "'\\x'", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testOperatorEdgeCases(String test, String input, boolean success) {
+        test(input, Arrays.asList(new Token(Token.Type.OPERATOR, input, 0)), success);
+    }
+
+    private static Stream<Arguments> testOperatorEdgeCases() {
+        return Stream.of(
+                Arguments.of("Single Character Operator", "+", true),
+                Arguments.of("Single Character Operator", "-", true),
+                Arguments.of("Complex Operator", "&&", true),
+                Arguments.of("Complex Operator", "||", true),
+                Arguments.of("Complex Operator", "==", true),
+                Arguments.of("Invalid Whitespace as Operator", " ", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
     void testIdentifier(String test, String input, boolean success) {
         test(input, Token.Type.IDENTIFIER, success);
     }
@@ -100,7 +181,8 @@ public class LexerTests {
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                Arguments.of("Equal", "=", true)
         );
     }
 
@@ -125,6 +207,35 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Example 3 (CUSTOM)", "if num!=5;", Arrays.asList(
+                        new Token(Token.Type.IDENTIFIER, "if", 0),
+                        new Token(Token.Type.IDENTIFIER, "num", 3),
+                        new Token(Token.Type.OPERATOR, "!=", 6),
+                        new Token(Token.Type.INTEGER, "5", 8),
+                        new Token(Token.Type.OPERATOR, ";", 9)
+                )),
+                Arguments.of("Example 4 (CUSTOM)", "while(num!=5){return 0;}", Arrays.asList(
+                        new Token(Token.Type.IDENTIFIER, "while", 0),
+                        new Token(Token.Type.OPERATOR, "(", 5),
+                        new Token(Token.Type.IDENTIFIER, "num", 6),
+                        new Token(Token.Type.OPERATOR, "!=", 9),
+                        new Token(Token.Type.INTEGER, "5", 11),
+                        new Token(Token.Type.OPERATOR, ")", 12),
+                        new Token(Token.Type.OPERATOR, "{", 13),
+                        new Token(Token.Type.IDENTIFIER, "return", 14),
+                        new Token(Token.Type.INTEGER, "0", 21),
+                        new Token(Token.Type.OPERATOR, ";", 22),
+                        new Token(Token.Type.OPERATOR, "}", 23)
+                )),
+                Arguments.of("Example 5 (CUSTOM)", "\"string\"", Arrays.asList(
+                        new Token(Token.Type.STRING, "\"string\"", 0)
+                )),
+                Arguments.of("Example 6 (CUSTOM)", "\"\"", Arrays.asList(
+                        new Token(Token.Type.STRING, "\"\"", 0)
+                )),
+                Arguments.of("Example 7 (CUSTOM)", "\"str\\ning\"", Arrays.asList(
+                        new Token(Token.Type.STRING, "\"str\\ning\"", 0)
                 ))
         );
     }
