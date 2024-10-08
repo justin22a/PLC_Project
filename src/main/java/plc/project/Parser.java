@@ -244,7 +244,14 @@ public final class Parser {
      * Parses the {@code additive-expression} rule.
      */
     public Ast.Expression parseAdditiveExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression result = parseMultiplicativeExpression();
+        while (peek("+", "-")) {
+            String operator = tokens.get(0).getLiteral();
+            match(operator);
+            Ast.Expression right = parseMultiplicativeExpression();
+            result = new Ast.Expression.Binary(operator, result, right);
+        }
+        return result;
     }
 
     /**
