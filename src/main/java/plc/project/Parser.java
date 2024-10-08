@@ -201,14 +201,32 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        return parseLogicalExpression();
     }
 
     /**
      * Parses the {@code logical-expression} rule.
      */
     public Ast.Expression parseLogicalExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression result = parseComparisonExpression();
+        while (peek("&&", "||")) {
+            String operator = tokens.get(0).getLiteral();
+            match(operator);
+            Ast.Expression right = parseComparisonExpression();
+            result = new Ast.Expression.Binary(operator, result, right);
+        }
+        return result;
+    }
+
+    public Ast.Expression parseComparisonExpression() throws ParseException {
+        Ast.Expression result = parseAdditiveExpression();
+        while (peek("<", "<=", ">", ">=", "==", "!=")) {
+            String operator = tokens.get(0).getLiteral();
+            match(operator);
+            Ast.Expression right = parseAdditiveExpression();
+            result = new Ast.Expression.Binary(operator, result, right);
+        }
+        return result;
     }
 
     /**
