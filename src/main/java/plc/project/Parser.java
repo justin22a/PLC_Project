@@ -229,17 +229,6 @@ public final class Parser {
         return result;
     }
 
-    public Ast.Expression parseEqualityExpression() throws ParseException {
-        Ast.Expression result = parseAdditiveExpression();
-        while (peek("==", "!=")) {
-            String operator = tokens.get(0).getLiteral();
-            match(operator);
-            Ast.Expression right = parseAdditiveExpression();
-            result = new Ast.Expression.Binary(operator, result, right);
-        }
-        return result;
-    }
-
     /**
      * Parses the {@code additive-expression} rule.
      */
