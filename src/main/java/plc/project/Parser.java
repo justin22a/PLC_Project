@@ -73,7 +73,7 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
     }
 
     /**
@@ -82,7 +82,7 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Statement.If parseIfStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
     }
 
     /**
@@ -91,7 +91,7 @@ public final class Parser {
      * {@code FOR}.
      */
     public Ast.Statement.For parseForStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
     }
 
     /**
@@ -100,7 +100,7 @@ public final class Parser {
      * {@code WHILE}.
      */
     public Ast.Statement.While parseWhileStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
     }
 
     /**
@@ -109,7 +109,7 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
     }
 
     /**
