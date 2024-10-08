@@ -258,7 +258,14 @@ public final class Parser {
      * Parses the {@code multiplicative-expression} rule.
      */
     public Ast.Expression parseMultiplicativeExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression result = parseSecondaryExpression();
+        while (peek("*", "/")) {
+            String operator = tokens.get(0).getLiteral();
+            match(operator);
+            Ast.Expression right = parseSecondaryExpression();
+            result = new Ast.Expression.Binary(operator, result, right);
+        }
+        return result;
     }
 
     /**
