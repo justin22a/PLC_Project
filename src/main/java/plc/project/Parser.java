@@ -62,14 +62,6 @@ public final class Parser {
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
-        if (!peek(":")) {
-            throw new ParseException("Expected ':' after field name.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
-        }
-        match(":");
-
-        if (!peek(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected type identifier after ':'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
-        }
         String typeName = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
