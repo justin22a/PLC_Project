@@ -55,7 +55,32 @@ public final class Parser {
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (match(Token.Type.IDENTIFIER)) {
+            if (match('(')) {
+                // while loop to catch identifiers separated by commas
+                if (match(')')) {
+                    if (match("DO")) {
+                        // while loop to catch statements
+                        if (match("END")) {
+                            return new Ast.Method(// name, // parameters, // statements);
+                        }
+                        else {
+                            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
+                        }
+                    }
+                    else {
+                        throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());
+                    }
+                }
+                throw new ParseException("Expected ')'", tokens.get(0).getIndex());
+            }
+            else {
+                throw new ParseException("Expected '('", tokens.get(0).getIndex());
+            }
+        }
+        else {
+            throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
+        }
     }
 
     /**
@@ -64,7 +89,17 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expr = parseExpression();
+        if (match('=')) {
+            Ast.Expression optExpr = parseExpression();
+            if ((match(';'))) {
+                return new Ast.Statement.Assignment(expr, optExpr);
+            }
+            else {
+                throw new ParseException("Expected '\''", tokens.get(0).getIndex());
+            }
+        }
+        return new Ast.Statement.Expression(expr);
     }
 
     /**
