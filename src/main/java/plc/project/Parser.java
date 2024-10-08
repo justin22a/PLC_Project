@@ -55,32 +55,49 @@ public final class Parser {
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
-        if (match(Token.Type.IDENTIFIER)) {
-            if (match('(')) {
-                // while loop to catch identifiers separated by commas
-                if (match(')')) {
-                    if (match("DO")) {
-                        // while loop to catch statements
-                        if (match("END")) {
-                            return new Ast.Method(// name, // parameters, // statements);
-                        }
-                        else {
-                            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
-                        }
-                    }
-                    else {
-                        throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());
-                    }
-                }
-                throw new ParseException("Expected ')'", tokens.get(0).getIndex());
-            }
-            else {
-                throw new ParseException("Expected '('", tokens.get(0).getIndex());
-            }
-        }
-        else {
+        if (!peek(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
         }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+
+        List<String> parameters = new ArrayList<>();
+        List<Ast.Statement> statements = new ArrayList<>();
+        if (!match('(')) {
+            throw new ParseException("Expected '('", tokens.get(0).getIndex());  
+        }
+        // Capture parameters
+        if (!peek(')')) {
+            // Catch the first identifier
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected an identifier after '('", tokens.get(0).getIndex());
+            }
+            parameters.add(tokens.get(0).getLiteral());
+            match(Token.Type.IDENTIFIER);
+            // Loop for any additional identifiers
+            while(match(',')) {
+                if (!peek(Token.Type.IDENTIFIER)) {
+                    throw new ParseException("Expected an identifier after ','", tokens.get(0).getIndex());
+                }
+                parameters.add(tokens.get(0).getLiteral());
+                match(Token.Type.IDENTIFIER);
+            }
+            
+        }
+        if (!match(')')) {
+            throw new ParseException("Expected ')'", tokens.get(0).getIndex());  
+        }
+        if (!match("DO")) {
+            throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());  
+        }
+        // Loop to capture statments
+        while(!peek("END")) {
+            statements.add(parseStatement());
+        }
+        if (!match("END")) {
+            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());  
+        }
+        return new Ast.Method(name, parameters, statements);         
     }
 
     /**
