@@ -271,7 +271,38 @@ public final class Parser {
      * not strictly necessary.
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek("NIL")) {
+            // TODO: Fill this in
+        }
+        else if (peek("TRUE")) {
+            // TODO: Fill this in
+        }
+        else if (peek("FALSE")) {
+            // TODO: Fill this in
+        }
+        else if (peek(Token.Type.INTEGER)) {
+            // TODO: Fill this in
+        }
+        else if (peek(Token.Type.DECIMAL)) {
+            // TODO: Fill this in
+        }
+        else if (peek(Token.Type.CHARACTER)) {
+            // TODO: Fill this in
+        }
+        else if (peek(Token.Type.STRING)) {
+            // TODO: Fill this in
+        }
+        else if (peek('(')) {
+            Ast.Expression expr = parseExpression();
+            if (!match(')')) {
+                throw new ParseException("Expected ')' after expression", 0);
+            }
+            return new Ast.Expression.Group(expr);
+        }
+        else if (peek(Token.Type.IDENTIFIER)) {
+            // TODO: Fill this in
+        }
+        throw new ParseException("Invalid primary expression", 0);
     }
 
     /**
