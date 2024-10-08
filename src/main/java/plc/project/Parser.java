@@ -2,6 +2,7 @@ package plc.project;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The parser takes the sequence of tokens emitted by the lexer and turns that
@@ -47,8 +48,48 @@ public final class Parser {
      * next tokens start a field, aka {@code LET}.
      */
     public Ast.Field parseField() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("LET");
+
+        // handle const scenario
+        boolean constant = peek("CONST");
+        if (constant) {
+            match("CONST");
+        }
+
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected identifier for field name.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+
+        if (!peek(":")) {
+            throw new ParseException("Expected ':' after field name.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
+        }
+        match(":");
+
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected type identifier after ':'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
+        }
+        String typeName = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+
+        Optional<Ast.Expression> value = Optional.empty();
+        if (peek("=")) {
+            match("=");
+            value = Optional.of(parseExpression());
+        }
+
+        if (!peek(";")) {
+            throw new ParseException("Expected ';' at end of field declaration.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex() + 1);
+        }
+        match(";");
+
+        return new Ast.Field(name, constant, value);
     }
+
+
+
+
 
     /**
      * Parses the {@code method} rule. This method should only be called if the
