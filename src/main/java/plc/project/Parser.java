@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,7 +28,18 @@ public final class Parser {
      * Parses the {@code source} rule.
      */
     public Ast.Source parseSource() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Field> fields = new ArrayList<>();
+        List<Ast.Method> methods = new ArrayList<>();
+        while (tokens.has(0)) { // While there are more tokens
+            if (peek("LET")) {
+                fields.add(parseField());
+            } else if (peek("DEF")) {
+                methods.add(parseMethod());
+            } else {
+                throw new ParseException("Expected field or method declaration", tokens.get(0).getIndex());
+            }
+        }
+        return new Ast.Source(fields, methods);
     }
 
     /**
