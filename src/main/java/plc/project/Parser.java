@@ -263,8 +263,33 @@ public final class Parser {
      * Parses the {@code secondary-expression} rule.
      */
     public Ast.Expression parseSecondaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression result = parsePrimaryExpression();
+        while (peek(".")) {
+            match(".");
+            String member = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+
+            if (peek("(")) {
+                match("(");
+                List<Ast.Expression> arguments = new ArrayList<>();
+                if (!peek(")")) {
+                    arguments.add(parseExpression());
+                    while (match(",")) {
+                        arguments.add(parseExpression());
+                    }
+                }
+                if (!match(")")) {
+                    throw new ParseException("Expected ')'", tokens.get(0).getIndex());
+                }
+                result = new Ast.Expression.Function(Optional.of(result), member, arguments);
+            } else {
+                result = new Ast.Expression.Access(Optional.of(result), member);
+            }
+        }
+        return result;
     }
+
+
 
     /**
      * Parses the {@code primary-expression} rule. This is the top-level rule
