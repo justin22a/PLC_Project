@@ -1,5 +1,7 @@
 package plc.project;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -272,19 +274,29 @@ public final class Parser {
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
         if (peek("NIL")) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match("NIL");
+            return new Ast.Expression.Literal(null);
         }
         else if (peek("TRUE")) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match("TRUE");
+            return new Ast.Expression.Literal(Boolean.TRUE);
         }
         else if (peek("FALSE")) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match("FALSE");
+            return new Ast.Expression.Literal(Boolean.FALSE);
         }
         else if (peek(Token.Type.INTEGER)) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match(Token.Type.INTEGER);
+            return new Ast.Expression.Literal(new BigInteger(lit));
         }
         else if (peek(Token.Type.DECIMAL)) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match(Token.Type.DECIMAL);
+            return new Ast.Expression.Literal(new BigDecimal(lit));
         }
         else if (peek(Token.Type.CHARACTER)) {
             // TODO: Fill this in
@@ -292,7 +304,7 @@ public final class Parser {
         else if (peek(Token.Type.STRING)) {
             // TODO: Fill this in
         }
-        else if (peek('(')) {
+        else if (match('(')) {
             Ast.Expression expr = parseExpression();
             if (!match(')')) {
                 throw new ParseException("Expected ')' after expression", 0);
@@ -300,7 +312,21 @@ public final class Parser {
             return new Ast.Expression.Group(expr);
         }
         else if (peek(Token.Type.IDENTIFIER)) {
-            // TODO: Fill this in
+            String funcName = tokens.get(0).getLiteral();
+            List<Ast.Expression> arguments = new ArrayList<>();
+            match(Token.Type.IDENTIFIER);
+            if (match('(')) {
+                if (match(')')) {
+                    // return something
+                }
+                else {
+                    // Check for first arg
+                    // While loop for args separated by commas
+                    // Check for closing parentheses
+                    // Return something
+                }
+            }
+
         }
         throw new ParseException("Invalid primary expression", 0);
     }
