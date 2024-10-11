@@ -98,11 +98,11 @@ public final class Parser {
 
         List<String> parameters = new ArrayList<>();
         List<Ast.Statement> statements = new ArrayList<>();
-        if (!match('(')) {
+        if (!match("(")) {
             throw new ParseException("Expected '('", tokens.get(0).getIndex());  
         }
         // Capture parameters
-        if (!peek(')')) {
+        if (!peek(")")) {
             // Catch the first identifier
             if (!peek(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected an identifier after '('", tokens.get(0).getIndex());
@@ -110,7 +110,7 @@ public final class Parser {
             parameters.add(tokens.get(0).getLiteral());
             match(Token.Type.IDENTIFIER);
             // Loop for any additional identifiers
-            while(match(',')) {
+            while(match(",")) {
                 if (!peek(Token.Type.IDENTIFIER)) {
                     throw new ParseException("Expected an identifier after ','", tokens.get(0).getIndex());
                 }
@@ -119,7 +119,7 @@ public final class Parser {
             }
             
         }
-        if (!match(')')) {
+        if (!match(")")) {
             throw new ParseException("Expected ')'", tokens.get(0).getIndex());  
         }
         if (!match("DO")) {
@@ -142,9 +142,9 @@ public final class Parser {
      */
     public Ast.Statement parseStatement() throws ParseException {
         Ast.Expression expr = parseExpression();
-        if (match('=')) {
+        if (match("=")) {
             Ast.Expression optExpr = parseExpression();
-            if ((match(';'))) {
+            if ((match(";"))) {
                 return new Ast.Statement.Assignment(expr, optExpr);
             }
             else {
@@ -299,17 +299,14 @@ public final class Parser {
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
         if (peek("NIL")) {
-            String lit = tokens.get(0).getLiteral();
             match("NIL");
             return new Ast.Expression.Literal(null);
         }
         else if (peek("TRUE")) {
-            String lit = tokens.get(0).getLiteral();
             match("TRUE");
             return new Ast.Expression.Literal(Boolean.TRUE);
         }
         else if (peek("FALSE")) {
-            String lit = tokens.get(0).getLiteral();
             match("FALSE");
             return new Ast.Expression.Literal(Boolean.FALSE);
         }
@@ -324,32 +321,50 @@ public final class Parser {
             return new Ast.Expression.Literal(new BigDecimal(lit));
         }
         else if (peek(Token.Type.CHARACTER)) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match(Token.Type.CHARACTER);
+            String noQuotes = lit.substring(1, lit.length()-1);
+            noQuotes.replace("\\b", "\b").replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t").replace("\\'", "'").replace("\\\"", "\"").replace("\\\\", "\\");
+            Character noQuotesChar = noQuotes.charAt(0);
+            return new Ast.Expression.Literal(noQuotesChar);
         }
         else if (peek(Token.Type.STRING)) {
-            // TODO: Fill this in
+            String lit = tokens.get(0).getLiteral();
+            match(Token.Type.STRING);
+            String noQuotes = lit.substring(1, lit.length()-1);
+            noQuotes.replace("\\b", "\b").replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t").replace("\\'", "'").replace("\\\"", "\"").replace("\\\\", "\\");
+            return new Ast.Expression.Literal(noQuotes);
         }
-        else if (match('(')) {
+        else if (match("(")) {
             Ast.Expression expr = parseExpression();
-            if (!match(')')) {
+            if (!match(")")) {
                 throw new ParseException("Expected ')' after expression", 0);
             }
             return new Ast.Expression.Group(expr);
         }
         else if (peek(Token.Type.IDENTIFIER)) {
-            String funcName = tokens.get(0).getLiteral();
-            List<Ast.Expression> arguments = new ArrayList<>();
+            String accessOrFuncName = tokens.get(0).getLiteral();
+            List<Ast.Expression> funcArgs = new ArrayList<>();
             match(Token.Type.IDENTIFIER);
-            if (match('(')) {
-                if (match(')')) {
-                    // return something
+            if (match("(")) {
+                if (match(")")) {
+                    return new Ast.Expression.Function(Optional.empty(), accessOrFuncName, funcArgs);
                 }
                 else {
-                    // Check for first arg
-                    // While loop for args separated by commas
-                    // Check for closing parentheses
-                    // Return something
+                    Ast.Expression expr = parseExpression();
+                    funcArgs.add(expr);
+                    while (match(",")) {
+                        Ast.Expression additionalExpr = parseExpression();
+                        funcArgs.add(additionalExpr);
+                    }
+                    if (!match(")")) {
+                        throw new ParseException("Expected ')' after argument list", tokens.get(0).getIndex());
+                    }
+                    return new Ast.Expression.Function(Optional.empty(), accessOrFuncName, funcArgs);
                 }
+            }
+            else {
+                return new Ast.Expression.Access(Optional.empty(), accessOrFuncName);
             }
 
         }
