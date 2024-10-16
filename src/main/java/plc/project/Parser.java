@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import plc.project.Ast.Statement;
+
 /**
  * The parser takes the sequence of tokens emitted by the lexer and turns that
  * into a structured representation of the program, called the Abstract Syntax
@@ -141,19 +143,19 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        if (peek("LET")) {
+        if (match("LET")) {
             return parseDeclarationStatement();
         }
-        else if (peek("IF")) {
+        else if (match("IF")) {
             return parseIfStatement();
         }
-        else if (peek("FOR")) {
+        else if (match("FOR")) {
             return parseForStatement();
         }
-        else if (peek("WHILE")) {
+        else if (match("WHILE")) {
             return parseWhileStatement();
         }
-        else if (peek("RETURN")) {
+        else if (match("RETURN")) {
             return parseReturnStatement();
         }
         else {
@@ -201,7 +203,10 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Statement.If parseIfStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
+        // private final Ast.Expression condition;
+        // private final List<Statement> thenStatements;
+        // private final List<Statement> elseStatements;
+        return new Ast.Statement.If();
     }
 
     /**
