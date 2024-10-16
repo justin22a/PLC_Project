@@ -33,7 +33,7 @@ public final class Parser {
     public Ast.Source parseSource() throws ParseException {
         List<Ast.Field> fields = new ArrayList<>();
         List<Ast.Method> methods = new ArrayList<>();
-        while (tokens.has(0)) { // While there are more tokens
+        while (tokens.has(0)) {
             if (peek("LET")) {
                 fields.add(parseField());
             } else if (peek("DEF")) {
@@ -141,17 +141,34 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        Ast.Expression expr = parseExpression();
-        if (match("=")) {
-            Ast.Expression optExpr = parseExpression();
-            if ((match(";"))) {
-                return new Ast.Statement.Assignment(expr, optExpr);
-            }
-            else {
-                throw new ParseException("Expected '\''", tokens.get(0).getIndex());
-            }
+        if (peek("LET")) {
+            return parseDeclarationStatement();
         }
-        return new Ast.Statement.Expression(expr);
+        else if (peek("IF")) {
+            return parseIfStatement();
+        }
+        else if (peek("FOR")) {
+            return parseForStatement();
+        }
+        else if (peek("WHILE")) {
+            return parseWhileStatement();
+        }
+        else if (peek("RETURN")) {
+            return parseReturnStatement();
+        }
+        else {
+            Ast.Expression expr = parseExpression();
+            if (match("=")) {
+                Ast.Expression optExpr = parseExpression();
+                if ((match(";"))) {
+                    return new Ast.Statement.Assignment(expr, optExpr);
+                }
+                else {
+                    throw new ParseException("Expected '\''", tokens.get(0).getIndex());
+                }
+            }
+            return new Ast.Statement.Expression(expr);
+        }
     }
 
     /**
@@ -160,7 +177,22 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
+        }
+        String varName = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+        if (match(";")) {
+            return new Ast.Statement.Declaration(varName, Optional.empty());
+        }
+        if (!match("=")) {
+            throw new ParseException("Expected an '=' or ';'", tokens.get(0).getIndex());
+        }
+        Ast.Expression varValue = parseExpression();
+        if (!match(";")) {
+            throw new ParseException("Expected a ';'", tokens.get(0).getIndex());
+        }
+        return new Ast.Statement.Declaration(varName, Optional.of(varValue));
     }
 
     /**
