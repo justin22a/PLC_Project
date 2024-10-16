@@ -166,7 +166,7 @@ public final class Parser {
                     return new Ast.Statement.Assignment(expr, optExpr);
                 }
                 else {
-                    throw new ParseException("Expected '\''", tokens.get(0).getIndex());
+                    throw new ParseException("Expected ';'", tokens.get(0).getIndex());
                 }
             }
             return new Ast.Statement.Expression(expr);
@@ -188,7 +188,7 @@ public final class Parser {
             return new Ast.Statement.Declaration(varName, Optional.empty());
         }
         if (!match("=")) {
-            throw new ParseException("Expected an '=' or ';'", tokens.get(0).getIndex());
+            throw new ParseException("Expected an '='", tokens.get(0).getIndex());
         }
         Ast.Expression varValue = parseExpression();
         if (!match(";")) {
@@ -203,10 +203,30 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Statement.If parseIfStatement() throws ParseException {
-        // private final Ast.Expression condition;
-        // private final List<Statement> thenStatements;
-        // private final List<Statement> elseStatements;
-        return new Ast.Statement.If();
+        List<Ast.Statement> thenStatements = new ArrayList<>();
+        List<Ast.Statement> elseStatements = new ArrayList<>();
+        Ast.Expression condition = parseExpression();
+        if (!match("DO")) {
+            throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());
+        }
+        // Loop to capture then statments
+        while(!peek("ELSE") && !peek("END")) {
+            thenStatements.add(parseStatement());
+        }
+        if (match("END")) {
+            return new Ast.Statement.If(condition, thenStatements, elseStatements);
+        }
+        if (!match("ELSE")) {
+            throw new ParseException("Expected 'ELSE'", tokens.get(0).getIndex());
+        }
+        // Loop to capture else statments
+        while(!peek("END")) {
+            elseStatements.add(parseStatement());
+        }
+        if (!match("END")) {
+            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
+        }
+        return new Ast.Statement.If(condition, thenStatements, elseStatements);
     }
 
     /**
@@ -215,7 +235,58 @@ public final class Parser {
      * {@code FOR}.
      */
     public Ast.Statement.For parseForStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
+        Ast.Statement initStatement = null;
+        Ast.Expression condExpression;
+        Ast.Statement incrStatement = null;
+        List<Ast.Statement> statements = new ArrayList<>();
+        if (!match("(")) {
+            throw new ParseException("Expected '('", tokens.get(0).getIndex());
+        }
+        if (!match(";")) { // Initialization statement is present...parse it
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
+            }
+            String firstIdent = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            if (!match("=")) {
+                throw new ParseException("Expected an '='", tokens.get(0).getIndex());
+            }
+            Ast.Expression firstExpr = parseExpression();
+            initStatement = new Ast.Statement.Declaration(firstIdent, Optional.of(firstExpr));
+            if (!match(";")) { // Missing semicolon after initialization statement...throw an exception
+                throw new ParseException("Expected a ';'", tokens.get(0).getIndex());
+            }
+        }
+        if (match(";")) { // Conditional expression is not present...throw an exception
+            throw new ParseException("Expected an expression", tokens.get(0).getIndex());
+        }
+        // Parse the second statement
+        condExpression = parseExpression();
+        if (!match(";")) { // Missing semicolon after conditional expression...throw an exception
+            throw new ParseException("Expected a ';'", tokens.get(0).getIndex());
+        }
+        if (!match(";")) { // Incremenentation statement is present...parse it
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
+            }
+            String lastIdent = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            if (!match("=")) {
+                throw new ParseException("Expected an '='", tokens.get(0).getIndex());
+            }
+            Ast.Expression lastExpr = parseExpression();
+            incrStatement = new Ast.Statement.Declaration(lastIdent, Optional.of(lastExpr));
+            if (!match(")")) { // Missing closing parentheses after incremenentation statement...throw an exception
+                throw new ParseException("Expected a ')'", tokens.get(0).getIndex());
+            }
+        }
+        while (!peek("END")) {
+            statements.add(parseStatement());
+        }
+        if (!match("END")) {
+            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
+        }
+        return new Ast.Statement.For(initStatement, condExpression, incrStatement, statements);
     }
 
     /**
@@ -224,7 +295,18 @@ public final class Parser {
      * {@code WHILE}.
      */
     public Ast.Statement.While parseWhileStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
+        List<Ast.Statement> statements = new ArrayList<>();
+        Ast.Expression condExpression = parseExpression();
+        if (!match("DO")) {
+            throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());
+        }
+        while (!peek("END")) {
+            statements.add(parseStatement());
+        }
+        if (!match("END")) {
+            throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
+        }
+        return new Ast.Statement.While(condExpression, statements);
     }
 
     /**
@@ -233,13 +315,16 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO -> NOT IN PART A
+        Ast.Expression returnVal = parseExpression();
+        if (!match(";")) {
+            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+        }
+        return new Ast.Statement.Return(returnVal);
     }
 
     /**
      * Parses the {@code expression} rule.
      */
-
     public Ast.Expression parseExpression() throws ParseException {
         return parseLogicalExpression();
     }
