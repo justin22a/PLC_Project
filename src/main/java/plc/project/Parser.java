@@ -92,6 +92,7 @@ public final class Parser {
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
+        match("DEF");
         if (!peek(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
         }
@@ -168,6 +169,9 @@ public final class Parser {
                 else {
                     throw new ParseException("Expected ';'", tokens.get(0).getIndex());
                 }
+            }
+            if (!match(";")) {
+                throw new ParseException("Expected ';'", tokens.get(0).getIndex());
             }
             return new Ast.Statement.Expression(expr);
         }
@@ -489,7 +493,8 @@ public final class Parser {
                 return new Ast.Expression.Access(Optional.empty(), name);
             }
         } else {
-            throw new ParseException("Invalid primary expression", tokens.get(0).getIndex());
+
+            throw new ParseException("Invalid primary expression" + tokens.get(0).getIndex(), tokens.get(0).getIndex());
         }
     }
 
