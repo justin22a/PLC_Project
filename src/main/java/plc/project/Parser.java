@@ -398,7 +398,9 @@ public final class Parser {
         while (peek(".")) {
             match(".");
             String member = tokens.get(0).getLiteral();
-            match(Token.Type.IDENTIFIER);
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected an identifier", tokens.get(0).getIndex());
+            }
 
             if (peek("(")) {
                 match("(");
