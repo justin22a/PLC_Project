@@ -154,9 +154,6 @@ public final class Parser {
                     throw new ParseException("Expected ';'", tokens.get(0).getIndex());
                 }
             }
-            if (!match(";")) {
-                throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-            }
             return new Ast.Statement.Expression(expr);
         }
     }
@@ -232,19 +229,19 @@ public final class Parser {
 
         Ast.Statement initStatement = null;
         if (!peek(";")) {
-            initStatement = parseDeclarationStatement(); // We assume initialization is a declaration
+            initStatement = parseDeclarationStatement(); // Handle initialization if present
         }
         match(";");
 
         Ast.Expression condExpression = null;
         if (!peek(";")) {
-            condExpression = parseExpression(); // Parsing the condition expression
+            condExpression = parseExpression(); // Handle condition if present
         }
         match(";");
 
         Ast.Statement incrStatement = null;
         if (!peek(")")) {
-            incrStatement = parseStatement(); // Assume increment is a simple statement
+            incrStatement = parseStatement(); // Handle increment if present
             if (!(incrStatement instanceof Ast.Statement.Expression || incrStatement instanceof Ast.Statement.Assignment)) {
                 throw new ParseException("Invalid increment expression in for loop", tokens.get(0).getIndex());
             }
@@ -262,6 +259,7 @@ public final class Parser {
     }
 
 
+
     /**
      * Parses a while statement from the {@code statement} rule. This method
      * should only be called if the next tokens start a while statement, aka
@@ -274,8 +272,10 @@ public final class Parser {
         if (!match("DO")) {
             throw new ParseException("Expected 'DO'", tokens.get(0).getIndex());
         }
-        while (!peek("END")) {
-            statements.add(parseStatement());
+        if (!peek("END")) {
+            while (tokens.has(0) && !peek("END")) { // Ensure there are tokens and not at 'END'
+                statements.add(parseStatement());
+            }
         }
         if (!match("END")) {
             throw new ParseException("Expected 'END'", tokens.get(0).getIndex());
