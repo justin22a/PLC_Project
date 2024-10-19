@@ -423,8 +423,7 @@ public final class Parser {
         } else if (peek(Token.Type.CHARACTER)) {
             String lit = tokens.get(0).getLiteral();
             match(Token.Type.CHARACTER);
-            String noQuotes = lit.substring(1, lit.length() - 1);
-            noQuotes = noQuotes
+            String noQuotes = lit.substring(1, lit.length() - 1)
                     .replace("\\b", "\b")
                     .replace("\\n", "\n")
                     .replace("\\r", "\r")
@@ -436,8 +435,7 @@ public final class Parser {
         } else if (peek(Token.Type.STRING)) {
             String lit = tokens.get(0).getLiteral();
             match(Token.Type.STRING);
-            String noQuotes = lit.substring(1, lit.length() - 1);
-            noQuotes = noQuotes
+            String noQuotes = lit.substring(1, lit.length() - 1)
                     .replace("\\b", "\b")
                     .replace("\\n", "\n")
                     .replace("\\r", "\r")
@@ -447,8 +445,11 @@ public final class Parser {
                     .replace("\\\\", "\\");
             return new Ast.Expression.Literal(noQuotes);
         } else if (match("(")) {
+            if (!tokens.has(0)) {
+                throw new ParseException("Expected expression after '(', but reached end of inputt", tokens.get(0).getIndex());
+            }
             Ast.Expression expr = parseExpression();
-            if (!match(")")) {
+            if (!match(")")) { // Check for the closing parenthesis
                 throw new ParseException("Expected ')' after expression", tokens.get(0).getIndex());
             }
             return new Ast.Expression.Group(expr);
@@ -457,22 +458,26 @@ public final class Parser {
             match(Token.Type.IDENTIFIER);
             if (match("(")) {
                 List<Ast.Expression> arguments = new ArrayList<>();
-                if (!peek(")")) {
+                while (tokens.has(0) && !peek(")")) {
                     arguments.add(parseExpression());
-                    while (match(",")) {
-                        arguments.add(parseExpression());
+                    if (!match(",")) {
+                        if (!peek(")")) {
+                            throw new ParseException("Expected ',' or ')' in function arguments", tokens.get(0).getIndex());
+                        }
                     }
                 }
-                match(")");
+                if (!match(")")) {
+                    throw new ParseException("Expected ')' at end of function arguments", tokens.get(0).getIndex());
+                }
                 return new Ast.Expression.Function(Optional.empty(), name, arguments);
             } else {
                 return new Ast.Expression.Access(Optional.empty(), name);
             }
         } else {
-
-            throw new ParseException("Invalid primary expression" + tokens.get(0).getIndex(), tokens.get(0).getIndex());
+            throw new ParseException("Invalid primary expression", tokens.get(0).getIndex());
         }
     }
+
 
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
