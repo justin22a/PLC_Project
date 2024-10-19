@@ -154,6 +154,9 @@ public final class Parser {
                     throw new ParseException("Expected ';'", tokens.get(0).getIndex());
                 }
             }
+            if (!match(";")) {
+                throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+            }
             return new Ast.Statement.Expression(expr);
         }
     }
