@@ -283,14 +283,12 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     return Environment.create(false);
                 }
                 return Environment.create(requireType(Boolean.class, visit(ast.getRight())));
-
             case "||":
                 Environment.PlcObject lhsOr = visit(ast.getLeft());
                 if (requireType(Boolean.class, lhsOr)) {
                     return Environment.create(true);
                 }
                 return Environment.create(requireType(Boolean.class, visit(ast.getRight())));
-
             case "/":
                 lhs = visit(ast.getLeft());
                 rhs = visit(ast.getRight());
