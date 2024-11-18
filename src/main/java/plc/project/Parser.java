@@ -53,29 +53,23 @@ public final class Parser {
      */
     public Ast.Field parseField() throws ParseException {
         match("LET");
-        boolean constant = peek("CONST");
-        if (constant) {
-            match("CONST");
-        }
-        if (!peek(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected identifier for field name.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-        }
         String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+        match(":");
+        String type = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
         Optional<Ast.Expression> value = Optional.empty();
-        if (peek("=")) {
-            match("=");
+        if (match("=")) {
             value = Optional.of(parseExpression());
         }
 
         if (!match(";")) {
-            throw new ParseException("Expected ';' at end of field declaration.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            throw new ParseException("Expected ';' at end of field declaration.", tokens.get(0).getIndex());
         }
 
-        return new Ast.Field(name, constant, value);
+        return new Ast.Field(name, type, false, value);
     }
-
 
 
 
@@ -86,40 +80,37 @@ public final class Parser {
      */
     public Ast.Method parseMethod() throws ParseException {
         match("DEF");
-        if (!peek(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected an identifier", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-        }
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
         match("(");
         List<String> parameters = new ArrayList<>();
         while (!peek(")")) {
-            if (!peek(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected an identifier for parameter", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            if (!parameters.isEmpty()) {
+                match(",");
             }
             parameters.add(tokens.get(0).getLiteral());
             match(Token.Type.IDENTIFIER);
-            if (peek(",")) {
-                match(",");
-            } else if (!peek(")")) {
-                throw new ParseException("Expected ',' or ')'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex()); // adding another exception in case this doesnt reach the end
-            }
         }
         match(")");
 
+        Optional<String> returnType = Optional.empty();
+        if (match(":")) {
+            returnType = Optional.of(tokens.get(0).getLiteral());
+            match(Token.Type.IDENTIFIER);
+        }
+
         if (!match("DO")) {
-            throw new ParseException("Expected 'DO'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            throw new ParseException("Expected 'DO' to start method body.", tokens.get(0).getIndex());
         }
 
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {
             statements.add(parseStatement());
         }
-        if (!match("END")) {
-            throw new ParseException("Expected 'END'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-        }
-        return new Ast.Method(name, parameters, statements);
+        match("END");
+
+        return new Ast.Method(name, parameters, new ArrayList<>(), returnType, statements);
     }
 
     /**
@@ -168,22 +159,25 @@ public final class Parser {
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
         match("LET");
-        if (!peek(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected an identifier", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-        }
-        String varName = tokens.get(0).getLiteral();
+        String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
-        if (match(";")) {
-            return new Ast.Statement.Declaration(varName, Optional.empty());
+
+        Optional<String> type = Optional.empty();
+        if (match(":")) {
+            type = Optional.of(tokens.get(0).getLiteral());
+            match(Token.Type.IDENTIFIER);
         }
-        if (!match("=")) {
-            throw new ParseException("Expected an '='", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+
+        Optional<Ast.Expression> value = Optional.empty();
+        if (match("=")) {
+            value = Optional.of(parseExpression());
         }
-        Ast.Expression varValue = parseExpression();
+
         if (!match(";")) {
-            throw new ParseException("Expected a ';'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            throw new ParseException("Expected ';' at end of declaration.", tokens.get(0).getIndex());
         }
-        return new Ast.Statement.Declaration(varName, Optional.of(varValue));
+
+        return new Ast.Statement.Declaration(name, type, value);
     }
 
     /**
