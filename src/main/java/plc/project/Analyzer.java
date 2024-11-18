@@ -255,7 +255,9 @@ public final class Analyzer implements Ast.Visitor<Void> {
         }
 
         if (ast.getStatements().isEmpty()) {
-            throw new RuntimeException("While loop body must not be empty.");
+            // handle the empty body
+            System.out.println("Warning: While loop body is empty. No-op.");
+            return null;
         }
 
         Scope loopScope = new Scope(scope);
@@ -268,7 +270,6 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
         return null;
     }
-
 
     @Override
     public Void visit(Ast.Statement.Return ast) {
