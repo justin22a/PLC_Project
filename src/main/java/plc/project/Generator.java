@@ -30,12 +30,61 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Source ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        //  Opener
+        writer.write("public class Main {");
+        newline(0);
+
+        //  Fields
+        for (Ast.Field field : ast.getFields()) {
+            newline(1);
+            visit(field);
+        }
+
+        // Pub stat void main stuff
+        newline(0);
+        newline(1);
+        writer.write("public static void main(String[] args) {");
+        newline(2);
+        writer.write("System.exit(new Main().main());");
+        newline(1);
+        writer.write("}");
+
+        // Methods
+        for (Ast.Method method : ast.getMethods()) {
+            newline(1);
+            visit(method);
+        }
+
+        // Closer
+        newline(0);
+        newline(0);
+        writer.write("}");
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Field ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        // Final?
+        if (ast.getConstant()) {
+            writer.write("final ");
+        }
+
+        // Type and name
+        writer.write(ast.getTypeName() + " " + ast.getName());
+
+        // Set to initial value?
+        if (ast.getValue().isPresent()) {
+            writer.write(" = ");
+            visit(ast.getValue().get());
+        }
+
+        // Ending semicolon
+        writer.write(";");
+
+        return null;
     }
 
     @Override
@@ -70,12 +119,40 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.While ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        // Opening line
+        writer.write("while (");
+        visit(ast.getCondition());
+        writer.write(") {");
+
+        // No statements? -> close braces on same line
+        if (ast.getStatements().isEmpty()) {
+            writer.write("}");
+        }
+
+        // Otherwise, write the statements and close on new line
+        else {
+            // Write out each statement
+            for (Ast.Statement statement : ast.getStatements()) {
+                newline(1);
+                visit(statement);
+            }
+
+            // Close braces on new line
+            newline(0);
+            writer.write("}");
+        }
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException(); //TODO
+        writer.write("return ");
+        visit(ast.getValue());
+        writer.write(";");
+
+        return null;
     }
 
     @Override
