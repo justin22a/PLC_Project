@@ -99,12 +99,30 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        // Type and type name
+        writer.write(ast.getTypeName() + " " + ast.getName()); // TODO: Gonna be a problem that typeName is optional in the Ast class?
+
+        // Has an assignment (this is optional)
+        if (ast.getValue().isPresent()) {
+            writer.write(" = ");
+            visit(ast.getValue().get());
+        }
+
+        // Closing semicolon
+        writer.write(";");
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Assignment ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getReceiver());
+        writer.write(" = ");
+        visit(ast.getValue());
+        writer.write(";");
+
+        return null;
     }
 
     @Override
