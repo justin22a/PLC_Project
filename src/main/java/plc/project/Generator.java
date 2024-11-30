@@ -1,6 +1,7 @@
 package plc.project;
 
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 
 public final class Generator implements Ast.Visitor<Void> {
 
@@ -46,8 +47,10 @@ public final class Generator implements Ast.Visitor<Void> {
         newline(0);
         newline(indent);
         writer.write("public static void main(String[] args) {");
-        newline(indent+1);
+        ++indent;
+        newline(indent);
         writer.write("System.exit(new Main().main());");
+        --indent;
         newline(indent);
         writer.write("}");
 
@@ -91,7 +94,39 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Method ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        // Opening return type, name, and parentheses
+        writer.write(ast.getReturnTypeName() + " " + ast.getName() + "(");
+
+        // Comma-separated list of parameters with types
+        for (int i = 0; i < ast.getParameters().size(); i++) {
+            writer.write(ast.getParameterTypeNames().get(i));
+            writer.write(" ");
+            writer.write(ast.getParameters().get(i));
+            if (i < ast.getParameters().size() - 1) {
+                writer.write(", ");
+            }
+        }
+        // Closing parentheses and opening brace
+        writer.write(") {");
+
+        // Close brace on same line if there's no statements
+        if (ast.getStatements().isEmpty()) {
+            writer.write("}");
+        }
+        // Otherwise, print each statement and close braces on a new line at the end
+        else {
+            for (Ast.Statement statement : ast.getStatements()) {
+                ++indent;
+                newline(indent);
+                visit(statement);
+                --indent;
+            }
+            newline(indent);
+            writer.write("}");
+        }
+
+        return null;
     }
 
     @Override
@@ -144,8 +179,10 @@ public final class Generator implements Ast.Visitor<Void> {
         }
         else {
             for (Ast.Statement statement : ast.getThenStatements()) {
-                newline(indent+1);
+                ++indent;
+                newline(indent);
                 visit(statement);
+                --indent;
             }
             newline(indent);
             writer.write("}");
@@ -155,8 +192,10 @@ public final class Generator implements Ast.Visitor<Void> {
         if (!ast.getElseStatements().isEmpty()) {
             writer.write(" else {");
             for (Ast.Statement statement : ast.getElseStatements()) {
-                newline(indent+1);
+                ++indent;
+                newline(indent);
                 visit(statement);
+                --indent;
             }
             newline(indent);
             writer.write("}");
@@ -167,7 +206,44 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.For ast) {
-        throw new UnsupportedOperationException(); //TODO
+        writer.write("for ( ");
+
+        // Optional initialization, otherwise manually enter the semicolon only
+        if (ast.getInitialization() != null) {
+            visit(ast.getInitialization());
+        }
+        else {
+            writer.write(";");
+        }
+
+        writer.write(" ");
+        visit(ast.getCondition());
+        writer.write(";");
+
+        // Optional increment
+        if (ast.getIncrement() != null) { // TODO: make sure the statement generator isn't generating a semicolon at the end when you don't want it...
+            visit(ast.getIncrement());
+        }
+
+        // Last space, closing parentheses, opening brace
+        writer.write(" ) {");
+
+        // Closing brace on same line if no statements present, otherwise print all statements and a closing brace on a new line
+        if (ast.getStatements().isEmpty()) {
+            writer.write("}");
+        }
+        else {
+            for (Ast.Statement statement : ast.getStatements()) {
+                ++indent;
+                newline(indent);
+                visit(statement);
+                --indent;
+            }
+            newline(indent);
+            writer.write("}");
+        }
+
+        return null;
     }
 
     @Override
@@ -187,8 +263,10 @@ public final class Generator implements Ast.Visitor<Void> {
         else {
             // Write out each statement
             for (Ast.Statement statement : ast.getStatements()) {
-                newline(indent+1);
+                ++indent;
+                newline(indent);
                 visit(statement);
+                --indent;
             }
 
             // Close braces on new line
@@ -210,7 +288,22 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Literal ast) {
-        throw new UnsupportedOperationException(); //TODO
+        Object literal = ast.getLiteral();
+
+        if (literal instanceof String || literal instanceof Character) {
+            writer.write("\"" + literal.toString() + "\"");
+        }
+        else if (literal instanceof Boolean) {
+            writer.write(literal.toString());
+        }
+        else {
+            String numAsString = literal.toString();
+            BigDecimal numAsBigDecimal = new BigDecimal(numAsString);
+            String stringWithBigDecPrecision = numAsBigDecimal.toString();
+            writer.write(stringWithBigDecPrecision);
+        }
+
+        return null;
     }
 
     @Override
