@@ -290,17 +290,23 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Expression.Literal ast) {
         Object literal = ast.getLiteral();
 
-        if (literal instanceof String || literal instanceof Character) {
+        // STRING or CHARACTER
+        if (ast.getType().equals(Environment.Type.CHARACTER) || ast.getType().equals(Environment.Type.STRING)) {
             writer.write("\"" + literal.toString() + "\"");
         }
-        else if (literal instanceof Boolean) {
+        // BOOLEAN
+        else if (ast.getType().equals(Environment.Type.BOOLEAN)) {
             writer.write(literal.toString());
         }
-        else {
+        // INTEGER
+        else if (ast.getType().equals(Environment.Type.INTEGER)) {
+            writer.write(literal.toString());
+        }
+        // DECIMAL
+        else if (ast.getType().equals(Environment.Type.DECIMAL)) {
             String numAsString = literal.toString();
             BigDecimal numAsBigDecimal = new BigDecimal(numAsString);
-            String stringWithBigDecPrecision = numAsBigDecimal.toString();
-            writer.write(stringWithBigDecPrecision);
+            writer.write(numAsBigDecimal.toString());
         }
 
         return null;
@@ -308,21 +314,51 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Group ast) {
-        throw new UnsupportedOperationException(); //TODO
+        writer.write("(");
+        visit(ast.getExpression());
+        writer.write(")");
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Binary ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getLeft());
+        writer.write(" " + ast.getOperator() + " ");
+        visit(ast.getRight());
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Access ast) {
-        throw new UnsupportedOperationException(); //TODO
+        // TODO: Do you need to generate the receiver with a dot after it before writing the name or should this first part be removed?
+        if (ast.getReceiver().isPresent()) {
+            visit(ast.getReceiver().get());
+            writer.write(".");
+        }
+
+        writer.write(ast.getName());
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        if (ast.getReceiver().isPresent()) { // TODO: Same question here...see above method...
+            visit(ast.getReceiver().get());
+            writer.write(".");
+        }
+
+        writer.write(ast.getName() + "(");
+        for (int i = 0; i < ast.getArguments().size(); i++) {
+            visit(ast.getArguments().get(i));
+            if (i < ast.getArguments().size() - 1) {
+                writer.write(", ");
+            }
+        }
+        writer.write(")");
+
+        return null;
     }
 }
