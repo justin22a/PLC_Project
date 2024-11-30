@@ -38,13 +38,15 @@ public final class Generator implements Ast.Visitor<Void> {
         ++indent;
 
         //  Fields
-        for (Ast.Field field : ast.getFields()) {
+        for (int i = 0; i < ast.getFields().size(); i++) {
             newline(indent);
-            visit(field);
+            visit(ast.getFields().get(i));
+            if (i == ast.getFields().size() - 1) {
+                newline(0);
+            }
         }
 
         // Pub stat void main stuff
-        newline(0);
         newline(indent);
         writer.write("public static void main(String[] args) {");
         ++indent;
@@ -53,12 +55,15 @@ public final class Generator implements Ast.Visitor<Void> {
         --indent;
         newline(indent);
         writer.write("}");
+        newline(0);
 
         // Methods
-        for (Ast.Method method : ast.getMethods()) {
+        for (int i = 0; i < ast.getMethods().size(); i++) {
             newline(indent);
-            visit(method);
-            newline(0);
+            visit(ast.getMethods().get(i));
+            if (i < ast.getMethods().size() - 1) {
+                newline(0);
+            }
         }
 
         // Closer
@@ -96,11 +101,11 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Method ast) {
 
         // Opening return type, name, and parentheses
-        writer.write(ast.getReturnTypeName() + " " + ast.getName() + "(");
+        writer.write(ast.getFunction().getReturnType().getJvmName() + " " + ast.getName() + "(");
 
         // Comma-separated list of parameters with types
         for (int i = 0; i < ast.getParameters().size(); i++) {
-            writer.write(ast.getParameterTypeNames().get(i));
+            writer.write(ast.getFunction().getParameterTypes().get(i).getJvmName()); // TODO: or this..? --> writer.write(ast.getParameterTypeNames().get(i));
             writer.write(" ");
             writer.write(ast.getParameters().get(i));
             if (i < ast.getParameters().size() - 1) {
@@ -141,7 +146,7 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Statement.Declaration ast) {
 
         // Type and type name
-        writer.write(ast.getTypeName() + " " + ast.getName()); // TODO: Gonna be a problem that typeName is optional in the Ast class?
+        writer.write(ast.getVariable().getType().getJvmName() + " " + ast.getName()); // TODO: Is it gonna be a problem that typeName is optional in the Ast class?
 
         // Has an assignment (this is optional)
         if (ast.getValue().isPresent()) {
@@ -218,15 +223,16 @@ public final class Generator implements Ast.Visitor<Void> {
 
         writer.write(" ");
         visit(ast.getCondition());
-        writer.write(";");
+        writer.write("; ");
 
         // Optional increment
-        if (ast.getIncrement() != null) { // TODO: make sure the statement generator isn't generating a semicolon at the end when you don't want it...
+        if (ast.getIncrement() != null) { // TODO: Fix the fact that the statement generator is generating a semicolon at the end when you don't want it...
             visit(ast.getIncrement());
+            writer.write(" ");
         }
 
         // Last space, closing parentheses, opening brace
-        writer.write(" ) {");
+        writer.write(") {");
 
         // Closing brace on same line if no statements present, otherwise print all statements and a closing brace on a new line
         if (ast.getStatements().isEmpty()) {
@@ -350,7 +356,7 @@ public final class Generator implements Ast.Visitor<Void> {
             writer.write(".");
         }
 
-        writer.write(ast.getName() + "(");
+        writer.write(ast.getFunction().getJvmName() + "(");
         for (int i = 0; i < ast.getArguments().size(); i++) {
             visit(ast.getArguments().get(i));
             if (i < ast.getArguments().size() - 1) {
