@@ -146,7 +146,7 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Statement.Declaration ast) {
 
         // Type and type name
-        writer.write(ast.getVariable().getType().getJvmName() + " " + ast.getName()); // TODO: Is it gonna be a problem that typeName is optional in the Ast class?
+        writer.write(ast.getVariable().getType().getJvmName() + " " + ast.getName());
 
         // Has an assignment (this is optional)
         if (ast.getValue().isPresent()) {
@@ -351,7 +351,8 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        if (ast.getReceiver().isPresent()) { // TODO: Same question here...see above method...
+        // TODO: Do you need to generate the receiver with a dot after it before writing the name or should this first part be removed?
+        if (ast.getReceiver().isPresent()) {
             visit(ast.getReceiver().get());
             writer.write(".");
         }
