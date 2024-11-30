@@ -34,26 +34,28 @@ public final class Generator implements Ast.Visitor<Void> {
         //  Opener
         writer.write("public class Main {");
         newline(0);
+        ++indent;
 
         //  Fields
         for (Ast.Field field : ast.getFields()) {
-            newline(1);
+            newline(indent);
             visit(field);
         }
 
         // Pub stat void main stuff
         newline(0);
-        newline(1);
+        newline(indent);
         writer.write("public static void main(String[] args) {");
-        newline(2);
+        newline(indent+1);
         writer.write("System.exit(new Main().main());");
-        newline(1);
+        newline(indent);
         writer.write("}");
 
         // Methods
         for (Ast.Method method : ast.getMethods()) {
-            newline(1);
+            newline(indent);
             visit(method);
+            newline(0);
         }
 
         // Closer
@@ -94,7 +96,10 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Expression ast) {
-        throw new UnsupportedOperationException(); //TODO
+        visit(ast.getExpression());
+        writer.write(";");
+
+        return null;
     }
 
     @Override
@@ -127,7 +132,37 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-        throw new UnsupportedOperationException(); //TODO
+
+        // Opening condition
+        writer.write("if (");
+        visit(ast.getCondition());
+        writer.write(") {");
+
+        // If there's no if statements, write a closing brace on same line. Otherwise, write out the statements.
+        if (ast.getThenStatements().isEmpty()) {
+            writer.write("}");
+        }
+        else {
+            for (Ast.Statement statement : ast.getThenStatements()) {
+                newline(indent+1);
+                visit(statement);
+            }
+            newline(indent);
+            writer.write("}");
+        }
+
+        // If there's else statements, write the else block containing all statements.
+        if (!ast.getElseStatements().isEmpty()) {
+            writer.write(" else {");
+            for (Ast.Statement statement : ast.getElseStatements()) {
+                newline(indent+1);
+                visit(statement);
+            }
+            newline(indent);
+            writer.write("}");
+        }
+
+        return null;
     }
 
     @Override
@@ -143,7 +178,7 @@ public final class Generator implements Ast.Visitor<Void> {
         visit(ast.getCondition());
         writer.write(") {");
 
-        // No statements? -> close braces on same line
+        // If there's no statements, close braces on same line
         if (ast.getStatements().isEmpty()) {
             writer.write("}");
         }
@@ -152,12 +187,12 @@ public final class Generator implements Ast.Visitor<Void> {
         else {
             // Write out each statement
             for (Ast.Statement statement : ast.getStatements()) {
-                newline(1);
+                newline(indent+1);
                 visit(statement);
             }
 
             // Close braces on new line
-            newline(0);
+            newline(indent);
             writer.write("}");
         }
 
