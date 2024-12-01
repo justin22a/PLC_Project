@@ -7,6 +7,7 @@ public final class Generator implements Ast.Visitor<Void> {
 
     private final PrintWriter writer;
     private int indent = 0;
+    private boolean generatingIncrement = false;
 
     public Generator(PrintWriter writer) {
         this.writer = writer;
@@ -165,7 +166,11 @@ public final class Generator implements Ast.Visitor<Void> {
         visit(ast.getReceiver());
         writer.write(" = ");
         visit(ast.getValue());
-        writer.write(";");
+
+        // Skip the semicolon if the Expression is the increment part of a for loop
+        if (!generatingIncrement) {
+            writer.write(";");
+        }
 
         return null;
     }
@@ -226,8 +231,11 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("; ");
 
         // Optional increment
-        if (ast.getIncrement() != null) { // TODO: Fix the fact that the statement generator is generating a semicolon at the end when you don't want it...
+        if (ast.getIncrement() != null) {
+            generatingIncrement = true;
             visit(ast.getIncrement());
+            generatingIncrement = false;
+
             writer.write(" ");
         }
 
