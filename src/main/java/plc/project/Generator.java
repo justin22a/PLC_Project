@@ -344,7 +344,7 @@ public final class Generator implements Ast.Visitor<Void> {
             writer.write(".");
         }
 
-        writer.write(ast.getName());
+        writer.write(ast.getVariable().getJvmName());
 
         return null;
     }
