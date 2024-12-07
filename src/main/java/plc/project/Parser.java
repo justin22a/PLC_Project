@@ -53,17 +53,31 @@ public final class Parser {
      */
     public Ast.Field parseField() throws ParseException {
         match("LET");
+
+        // Parse field name
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected field name after 'LET'", tokens.get(0).getIndex());
+        }
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
-        match(":");
-        String type = tokens.get(0).getLiteral();
-        match(Token.Type.IDENTIFIER);
 
+        // Check for type declaration
+        String type = "Any"; // Default type
+        if (match(":")) {
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected type after ':'", tokens.get(0).getIndex());
+            }
+            type = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+        }
+
+        // Optional initialization value
         Optional<Ast.Expression> value = Optional.empty();
         if (match("=")) {
             value = Optional.of(parseExpression());
         }
 
+        // Ensure semicolon terminates the field
         if (!match(";")) {
             throw new ParseException("Expected ';' at end of field declaration.", tokens.get(0).getIndex());
         }
@@ -74,34 +88,62 @@ public final class Parser {
 
 
 
+
+
+
     /**
      * Parses the {@code method} rule. This method should only be called if the
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
         match("DEF");
+
+        // Parse method name
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected method name after 'DEF'", tokens.get(0).getIndex());
+        }
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
+        // Parse parameters
         match("(");
         List<String> parameters = new ArrayList<>();
+        List<String> parameterTypes = new ArrayList<>();
+
         while (!peek(")")) {
             if (!parameters.isEmpty()) {
                 match(",");
             }
-            parameters.add(tokens.get(0).getLiteral());
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected parameter type", tokens.get(0).getIndex());
+            }
+            String type = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
+
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected parameter name after type", tokens.get(0).getIndex());
+            }
+            String paramName = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+
+            parameterTypes.add(type);
+            parameters.add(paramName);
         }
         match(")");
 
-        Optional<String> returnType = Optional.empty();
+        // Parse optional return type
+        Optional<String> returnType = Optional.of("Any"); // Default to "Any"
         if (match(":")) {
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected return type after ':'", tokens.get(0).getIndex());
+            }
             returnType = Optional.of(tokens.get(0).getLiteral());
             match(Token.Type.IDENTIFIER);
         }
 
+        // Parse method body
         if (!match("DO")) {
-            throw new ParseException("Expected 'DO' to start method body.", tokens.get(0).getIndex());
+            throw new ParseException("Expected 'DO' to start method body", tokens.get(0).getIndex());
         }
 
         List<Ast.Statement> statements = new ArrayList<>();
@@ -110,8 +152,11 @@ public final class Parser {
         }
         match("END");
 
-        return new Ast.Method(name, parameters, new ArrayList<>(), returnType, statements);
+        return new Ast.Method(name, parameters, parameterTypes, returnType, statements);
     }
+
+
+
 
     /**
      * Parses the {@code statement} rule and delegates to the necessary method.
@@ -376,6 +421,9 @@ public final class Parser {
                 if (!peek(")")) {
                     arguments.add(parseExpression());
                     while (match(",")) {
+                        if (peek(")")) { // Check for trailing comma
+                            throw new ParseException("Unexpected trailing comma in function arguments", tokens.get(0).getIndex());
+                        }
                         arguments.add(parseExpression());
                     }
                 }
@@ -407,17 +455,17 @@ public final class Parser {
             match("FALSE");
             return new Ast.Expression.Literal(Boolean.FALSE);
         } else if (peek(Token.Type.INTEGER)) {
-            String lit = tokens.get(0).getLiteral();
+            String literal = tokens.get(0).getLiteral();
             match(Token.Type.INTEGER);
-            return new Ast.Expression.Literal(new BigInteger(lit));
+            return new Ast.Expression.Literal(new BigInteger(literal));
         } else if (peek(Token.Type.DECIMAL)) {
-            String lit = tokens.get(0).getLiteral();
+            String literal = tokens.get(0).getLiteral();
             match(Token.Type.DECIMAL);
-            return new Ast.Expression.Literal(new BigDecimal(lit));
+            return new Ast.Expression.Literal(new BigDecimal(literal));
         } else if (peek(Token.Type.CHARACTER)) {
-            String lit = tokens.get(0).getLiteral();
+            String literal = tokens.get(0).getLiteral();
             match(Token.Type.CHARACTER);
-            String noQuotes = lit.substring(1, lit.length() - 1)
+            String noQuotes = literal.substring(1, literal.length() - 1)
                     .replace("\\b", "\b")
                     .replace("\\n", "\n")
                     .replace("\\r", "\r")
@@ -427,9 +475,9 @@ public final class Parser {
                     .replace("\\\\", "\\");
             return new Ast.Expression.Literal(noQuotes.charAt(0));
         } else if (peek(Token.Type.STRING)) {
-            String lit = tokens.get(0).getLiteral();
+            String literal = tokens.get(0).getLiteral();
             match(Token.Type.STRING);
-            String noQuotes = lit.substring(1, lit.length() - 1)
+            String noQuotes = literal.substring(1, literal.length() - 1)
                     .replace("\\b", "\b")
                     .replace("\\n", "\n")
                     .replace("\\r", "\r")
@@ -439,29 +487,33 @@ public final class Parser {
                     .replace("\\\\", "\\");
             return new Ast.Expression.Literal(noQuotes);
         } else if (match("(")) {
+            // Parse expression inside parentheses
             if (!tokens.has(0)) {
-                throw new ParseException("Expected expression after '(', but reached end of input", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+                throw new ParseException("Expected expression after '(', but reached end of input", tokens.get(-1).getIndex());
             }
             Ast.Expression expr = parseExpression();
-            if (!match(")")) { // Check for the closing parenthesis
-                throw new ParseException("Expected ')' after expression", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+
+            // Ensure the closing parenthesis exists
+            if (!match(")")) {
+                int errorIndex = tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex();
+                throw new ParseException("Expected ')' after expression", errorIndex);
             }
             return new Ast.Expression.Group(expr);
         } else if (peek(Token.Type.IDENTIFIER)) {
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
-            if (match("(")) {
+
+            if (match("(")) { // Parse function call
                 List<Ast.Expression> arguments = new ArrayList<>();
-                while (tokens.has(0) && !peek(")")) {
+                if (!peek(")")) {
                     arguments.add(parseExpression());
-                    if (!match(",")) {
-                        if (!peek(")")) {
-                            throw new ParseException("Expected ',' or ')' in function arguments", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-                        }
+                    while (match(",")) {
+                        arguments.add(parseExpression());
                     }
                 }
                 if (!match(")")) {
-                    throw new ParseException("Expected ')' at end of function arguments", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+                    int errorIndex = tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex();
+                    throw new ParseException("Expected ')' at end of function arguments", errorIndex);
                 }
                 return new Ast.Expression.Function(Optional.empty(), name, arguments);
             } else {
@@ -471,6 +523,7 @@ public final class Parser {
             throw new ParseException("Invalid primary expression", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
         }
     }
+
 
 
     /**
