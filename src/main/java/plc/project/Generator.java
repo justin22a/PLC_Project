@@ -30,108 +30,99 @@ public final class Generator implements Ast.Visitor<Void> {
         }
     }
 
+    private String mapTypeName(String typeName) {
+        switch (typeName) {
+            case "Integer": return "int";
+            case "Decimal": return "double";
+            case "String": return "String";
+            case "Boolean": return "boolean";
+            default: return typeName;
+        }
+    }
+
     @Override
     public Void visit(Ast.Source ast) {
-
-        //  Opener
+        // Class header
         writer.write("public class Main {");
         newline(0);
-        ++indent;
+        indent++;
 
-        //  Fields
+        // Fields
         for (int i = 0; i < ast.getFields().size(); i++) {
             newline(indent);
             visit(ast.getFields().get(i));
-            if (i == ast.getFields().size() - 1) {
-                newline(0);
-            }
         }
 
-        // Pub stat void main stuff
+        // Newline between fields and methods
+        if (!ast.getFields().isEmpty() && !ast.getMethods().isEmpty()) {
+            newline(0);
+        }
+
+        // Main method
         newline(indent);
         writer.write("public static void main(String[] args) {");
-        ++indent;
+        indent++;
         newline(indent);
         writer.write("System.exit(new Main().main());");
-        --indent;
+        indent--;
         newline(indent);
         writer.write("}");
-        newline(0);
 
         // Methods
         for (int i = 0; i < ast.getMethods().size(); i++) {
+            newline(0);
             newline(indent);
             visit(ast.getMethods().get(i));
-            if (i < ast.getMethods().size() - 1) {
-                newline(0);
-            }
         }
 
-        // Closer
-        newline(0);
+        // Class closing brace
+        indent--;
         newline(0);
         writer.write("}");
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Field ast) {
-
-        // Final?
         if (ast.getConstant()) {
             writer.write("final ");
         }
 
-        // Type and name
-        writer.write(ast.getTypeName() + " " + ast.getName());
+        writer.write(mapTypeName(ast.getTypeName()) + " " + ast.getName());
 
-        // Set to initial value?
         if (ast.getValue().isPresent()) {
             writer.write(" = ");
             visit(ast.getValue().get());
         }
 
-        // Ending semicolon
         writer.write(";");
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Method ast) {
+        writer.write(mapTypeName(ast.getFunction().getReturnType().getJvmName()) + " " + ast.getName() + "(");
 
-        // Opening return type, name, and parentheses
-        writer.write(ast.getFunction().getReturnType().getJvmName() + " " + ast.getName() + "(");
-
-        // Comma-separated list of parameters with types
         for (int i = 0; i < ast.getParameters().size(); i++) {
-            writer.write(ast.getFunction().getParameterTypes().get(i).getJvmName()); // TODO: or this..? --> writer.write(ast.getParameterTypeNames().get(i));
-            writer.write(" ");
-            writer.write(ast.getParameters().get(i));
+            writer.write(mapTypeName(ast.getFunction().getParameterTypes().get(i).getJvmName()) + " " + ast.getParameters().get(i));
             if (i < ast.getParameters().size() - 1) {
                 writer.write(", ");
             }
         }
-        // Closing parentheses and opening brace
-        writer.write(") {");
 
-        // Close brace on same line if there's no statements
+        writer.write(") {");
         if (ast.getStatements().isEmpty()) {
             writer.write("}");
-        }
-        // Otherwise, print each statement and close braces on a new line at the end
-        else {
+        } else {
             for (Ast.Statement statement : ast.getStatements()) {
-                ++indent;
+                indent++;
                 newline(indent);
                 visit(statement);
-                --indent;
+                indent--;
             }
             newline(indent);
             writer.write("}");
         }
-
         return null;
     }
 
@@ -139,25 +130,17 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Statement.Expression ast) {
         visit(ast.getExpression());
         writer.write(";");
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-
-        // Type and type name
-        writer.write(ast.getVariable().getType().getJvmName() + " " + ast.getName());
-
-        // Has an assignment (this is optional)
+        writer.write(mapTypeName(ast.getVariable().getType().getJvmName()) + " " + ast.getName());
         if (ast.getValue().isPresent()) {
             writer.write(" = ");
             visit(ast.getValue().get());
         }
-
-        // Closing semicolon
         writer.write(";");
-
         return null;
     }
 
@@ -166,63 +149,52 @@ public final class Generator implements Ast.Visitor<Void> {
         visit(ast.getReceiver());
         writer.write(" = ");
         visit(ast.getValue());
-
-        // Skip the semicolon if the Expression is the increment part of a for loop
         if (!generatingIncrement) {
             writer.write(";");
         }
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-
-        // Opening condition
         writer.write("if (");
         visit(ast.getCondition());
         writer.write(") {");
 
-        // If there's no if statements, write a closing brace on same line. Otherwise, write out the statements.
         if (ast.getThenStatements().isEmpty()) {
             writer.write("}");
-        }
-        else {
+        } else {
             for (Ast.Statement statement : ast.getThenStatements()) {
-                ++indent;
+                indent++;
                 newline(indent);
                 visit(statement);
-                --indent;
+                indent--;
             }
             newline(indent);
             writer.write("}");
         }
 
-        // If there's else statements, write the else block containing all statements.
         if (!ast.getElseStatements().isEmpty()) {
             writer.write(" else {");
             for (Ast.Statement statement : ast.getElseStatements()) {
-                ++indent;
+                indent++;
                 newline(indent);
                 visit(statement);
-                --indent;
+                indent--;
             }
             newline(indent);
             writer.write("}");
         }
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.For ast) {
-        writer.write("for ( ");
+        writer.write("for (");
 
-        // Optional initialization, otherwise manually enter the semicolon only
         if (ast.getInitialization() != null) {
             visit(ast.getInitialization());
-        }
-        else {
+        } else {
             writer.write(";");
         }
 
@@ -230,64 +202,47 @@ public final class Generator implements Ast.Visitor<Void> {
         visit(ast.getCondition());
         writer.write("; ");
 
-        // Optional increment
         if (ast.getIncrement() != null) {
             generatingIncrement = true;
             visit(ast.getIncrement());
             generatingIncrement = false;
-
-            writer.write(" ");
         }
 
-        // Last space, closing parentheses, opening brace
         writer.write(") {");
 
-        // Closing brace on same line if no statements present, otherwise print all statements and a closing brace on a new line
         if (ast.getStatements().isEmpty()) {
             writer.write("}");
-        }
-        else {
+        } else {
             for (Ast.Statement statement : ast.getStatements()) {
-                ++indent;
+                indent++;
                 newline(indent);
                 visit(statement);
-                --indent;
+                indent--;
             }
             newline(indent);
             writer.write("}");
         }
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.While ast) {
-
-        // Opening line
         writer.write("while (");
         visit(ast.getCondition());
         writer.write(") {");
 
-        // If there's no statements, close braces on same line
         if (ast.getStatements().isEmpty()) {
             writer.write("}");
-        }
-
-        // Otherwise, write the statements and close on new line
-        else {
-            // Write out each statement
+        } else {
             for (Ast.Statement statement : ast.getStatements()) {
-                ++indent;
+                indent++;
                 newline(indent);
                 visit(statement);
-                --indent;
+                indent--;
             }
-
-            // Close braces on new line
             newline(indent);
             writer.write("}");
         }
-
         return null;
     }
 
@@ -296,33 +251,21 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("return ");
         visit(ast.getValue());
         writer.write(";");
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Literal ast) {
         Object literal = ast.getLiteral();
-
-        // STRING or CHARACTER
         if (ast.getType().equals(Environment.Type.CHARACTER) || ast.getType().equals(Environment.Type.STRING)) {
             writer.write("\"" + literal.toString() + "\"");
-        }
-        // BOOLEAN
-        else if (ast.getType().equals(Environment.Type.BOOLEAN)) {
+        } else if (ast.getType().equals(Environment.Type.BOOLEAN)) {
             writer.write(literal.toString());
-        }
-        // INTEGER
-        else if (ast.getType().equals(Environment.Type.INTEGER)) {
+        } else if (ast.getType().equals(Environment.Type.INTEGER)) {
             writer.write(literal.toString());
+        } else if (ast.getType().equals(Environment.Type.DECIMAL)) {
+            writer.write(literal.toString() + "d");
         }
-        // DECIMAL
-        else if (ast.getType().equals(Environment.Type.DECIMAL)) {
-            String numAsString = literal.toString();
-            BigDecimal numAsBigDecimal = new BigDecimal(numAsString);
-            writer.write(numAsBigDecimal.toString());
-        }
-
         return null;
     }
 
@@ -331,7 +274,6 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("(");
         visit(ast.getExpression());
         writer.write(")");
-
         return null;
     }
 
@@ -340,31 +282,25 @@ public final class Generator implements Ast.Visitor<Void> {
         visit(ast.getLeft());
         writer.write(" " + ast.getOperator() + " ");
         visit(ast.getRight());
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Access ast) {
-        // TODO: Do you need to generate the receiver with a dot after it before writing the name or should this first part be removed?
         if (ast.getReceiver().isPresent()) {
             visit(ast.getReceiver().get());
             writer.write(".");
         }
-
         writer.write(ast.getVariable().getJvmName());
-
         return null;
     }
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        // TODO: Do you need to generate the receiver with a dot after it before writing the name or should this first part be removed?
         if (ast.getReceiver().isPresent()) {
             visit(ast.getReceiver().get());
             writer.write(".");
         }
-
         writer.write(ast.getFunction().getJvmName() + "(");
         for (int i = 0; i < ast.getArguments().size(); i++) {
             visit(ast.getArguments().get(i));
@@ -373,7 +309,6 @@ public final class Generator implements Ast.Visitor<Void> {
             }
         }
         writer.write(")");
-
         return null;
     }
 }

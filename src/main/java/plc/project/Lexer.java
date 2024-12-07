@@ -14,7 +14,7 @@ public final class Lexer {
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<Token>();
         while (peek(".")) {
-            if (peek("[ \b\n\r\t]")) {
+            if (peek("[ \n\r\t]")) {
                 chars.advance();
                 chars.skip();
             }
@@ -44,12 +44,37 @@ public final class Lexer {
     }
 
     public Token lexIdentifier() {
-        // keep advancing our stream until the pattern is no more for our identifier
+        // Match identifier pattern: letters, digits, underscores, and dashes
         while (peek("[A-Za-z_0-9-]")) {
             match("[A-Za-z_0-9-]");
         }
-        return chars.emit(Token.Type.IDENTIFIER);
+
+        // Extract the matched lexeme
+        String lexeme = chars.input.substring(chars.index - chars.length, chars.index);
+
+        // Check if the lexeme matches reserved keywords
+        if (isKeyword(lexeme)) {
+            return new Token(Token.Type.IDENTIFIER, lexeme, chars.index - lexeme.length());
+        } else {
+            return chars.emit(Token.Type.IDENTIFIER);
+        }
     }
+
+
+    private boolean isKeyword(String lexeme) {
+        switch (lexeme) {
+            case "LET":
+            case "IF":
+            case "ELSE":
+            case "WHILE":
+            case "FOR":
+            case "RETURN":
+                return true;
+            default:
+                return false;
+        }
+    }
+
 
     public Token lexNumber() {
         // Check for a positive or minus sign first
@@ -57,12 +82,8 @@ public final class Lexer {
             match("[+\\-]");
         }
         // Check for leading zeros and handle them
-        if (peek("0")) {
+        if (peek("0") && !peek("[.]", "\\d")) { // Allow 0 and decimals
             match("0");
-            // If we see a digit after the leading zero, it's an invalid integer (unless it's a decimal)
-            if (peek("\\d")) {
-                throw new ParseException("Invalid integer with leading zeros", chars.index);
-            }
         } else {
             // Grab digits for the integer part before the decimal point
             while (peek("\\d")) {
@@ -95,8 +116,8 @@ public final class Lexer {
         else {
             throw new ParseException("Illegal Character", chars.index);
         }
-        if (peek("\'")) {
-            match("\'");
+        if (peek("'")) {
+            match("'");
             return chars.emit(Token.Type.CHARACTER);
         }
         throw new ParseException("this is not a valid character", chars.index);
@@ -151,6 +172,9 @@ public final class Lexer {
         }
         else if (peek("&", "&")) {
             match("&", "&");
+        }
+        else if (peek("[+\\-*/]")) {
+            match("[+\\-*/]");
         }
         else {
             match(".");
