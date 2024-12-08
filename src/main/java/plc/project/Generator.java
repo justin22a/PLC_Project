@@ -42,18 +42,16 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Source ast) {
-        // Class header
         writer.write("public class Main {");
         newline(0);
         indent++;
 
         // Fields
-        for (int i = 0; i < ast.getFields().size(); i++) {
+        for (Ast.Field field : ast.getFields()) {
             newline(indent);
-            visit(ast.getFields().get(i));
+            visit(field);
         }
 
-        // Newline between fields and methods
         if (!ast.getFields().isEmpty() && !ast.getMethods().isEmpty()) {
             newline(0);
         }
@@ -69,13 +67,12 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("}");
 
         // Methods
-        for (int i = 0; i < ast.getMethods().size(); i++) {
+        for (Ast.Method method : ast.getMethods()) {
             newline(0);
             newline(indent);
-            visit(ast.getMethods().get(i));
+            visit(method);
         }
 
-        // Class closing brace
         indent--;
         newline(0);
         writer.write("}");
@@ -87,14 +84,11 @@ public final class Generator implements Ast.Visitor<Void> {
         if (ast.getConstant()) {
             writer.write("final ");
         }
-
         writer.write(mapTypeName(ast.getTypeName()) + " " + ast.getName());
-
         if (ast.getValue().isPresent()) {
             writer.write(" = ");
             visit(ast.getValue().get());
         }
-
         writer.write(";");
         return null;
     }
@@ -102,14 +96,12 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Method ast) {
         writer.write(mapTypeName(ast.getFunction().getReturnType().getJvmName()) + " " + ast.getName() + "(");
-
         for (int i = 0; i < ast.getParameters().size(); i++) {
             writer.write(mapTypeName(ast.getFunction().getParameterTypes().get(i).getJvmName()) + " " + ast.getParameters().get(i));
             if (i < ast.getParameters().size() - 1) {
                 writer.write(", ");
             }
         }
-
         writer.write(") {");
         if (ast.getStatements().isEmpty()) {
             writer.write("}");
@@ -160,20 +152,14 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("if (");
         visit(ast.getCondition());
         writer.write(") {");
-
-        if (ast.getThenStatements().isEmpty()) {
-            writer.write("}");
-        } else {
-            for (Ast.Statement statement : ast.getThenStatements()) {
-                indent++;
-                newline(indent);
-                visit(statement);
-                indent--;
-            }
+        for (Ast.Statement statement : ast.getThenStatements()) {
+            indent++;
             newline(indent);
-            writer.write("}");
+            visit(statement);
+            indent--;
         }
-
+        newline(indent);
+        writer.write("}");
         if (!ast.getElseStatements().isEmpty()) {
             writer.write(" else {");
             for (Ast.Statement statement : ast.getElseStatements()) {
@@ -191,37 +177,28 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Statement.For ast) {
         writer.write("for (");
-
         if (ast.getInitialization() != null) {
             visit(ast.getInitialization());
         } else {
             writer.write(";");
         }
-
         writer.write(" ");
         visit(ast.getCondition());
         writer.write("; ");
-
         if (ast.getIncrement() != null) {
             generatingIncrement = true;
             visit(ast.getIncrement());
             generatingIncrement = false;
         }
-
         writer.write(") {");
-
-        if (ast.getStatements().isEmpty()) {
-            writer.write("}");
-        } else {
-            for (Ast.Statement statement : ast.getStatements()) {
-                indent++;
-                newline(indent);
-                visit(statement);
-                indent--;
-            }
+        for (Ast.Statement statement : ast.getStatements()) {
+            indent++;
             newline(indent);
-            writer.write("}");
+            visit(statement);
+            indent--;
         }
+        newline(indent);
+        writer.write("}");
         return null;
     }
 
@@ -230,19 +207,14 @@ public final class Generator implements Ast.Visitor<Void> {
         writer.write("while (");
         visit(ast.getCondition());
         writer.write(") {");
-
-        if (ast.getStatements().isEmpty()) {
-            writer.write("}");
-        } else {
-            for (Ast.Statement statement : ast.getStatements()) {
-                indent++;
-                newline(indent);
-                visit(statement);
-                indent--;
-            }
+        for (Ast.Statement statement : ast.getStatements()) {
+            indent++;
             newline(indent);
-            writer.write("}");
+            visit(statement);
+            indent--;
         }
+        newline(indent);
+        writer.write("}");
         return null;
     }
 
@@ -257,14 +229,16 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.Literal ast) {
         Object literal = ast.getLiteral();
-        if (ast.getType().equals(Environment.Type.CHARACTER) || ast.getType().equals(Environment.Type.STRING)) {
-            writer.write("\"" + literal.toString() + "\"");
-        } else if (ast.getType().equals(Environment.Type.BOOLEAN)) {
+        if (literal == null) {
+            writer.write("null");
+        } else if (literal instanceof Character) {
+            writer.write("'" + literal.toString().replace("'", "\\'") + "'");
+        } else if (literal instanceof String) {
+            writer.write("\"" + literal.toString().replace("\"", "\\\"") + "\"");
+        } else if (literal instanceof BigDecimal) {
+            writer.write(((BigDecimal) literal).toPlainString());
+        } else {
             writer.write(literal.toString());
-        } else if (ast.getType().equals(Environment.Type.INTEGER)) {
-            writer.write(literal.toString());
-        } else if (ast.getType().equals(Environment.Type.DECIMAL)) {
-            writer.write(literal.toString() + "d");
         }
         return null;
     }
