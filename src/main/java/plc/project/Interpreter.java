@@ -58,6 +58,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Method ast) {
         scope.defineFunction(ast.getName(), ast.getParameters().size(), args -> {
+            Scope previousScope = scope; // Save the current scope
             try {
                 scope = new Scope(scope);
 
@@ -71,13 +72,14 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             } catch (Return returnException) {
                 return returnException.value;
             } finally {
-                scope = scope.getParent();
+                scope = previousScope; // Restore the original scope
             }
             return Environment.NIL;
         });
 
         return Environment.NIL;
     }
+
 
 
 
@@ -110,24 +112,22 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         }
 
         Ast.Expression.Access receiver = (Ast.Expression.Access) ast.getReceiver();
-
         Environment.PlcObject value = visit(ast.getValue());
 
-        try {
-            scope = new Scope(scope);
-
-            if (receiver.getReceiver().isPresent()) {
-                Environment.PlcObject object = visit(receiver.getReceiver().get());
-                object.setField(receiver.getName(), value);
-            } else {
-                scope.lookupVariable(receiver.getName()).setValue(value);
+        if (receiver.getReceiver().isPresent()) {
+            Environment.PlcObject object = visit(receiver.getReceiver().get());
+            object.setField(receiver.getName(), value);
+        } else {
+            Environment.Variable variable = scope.lookupVariable(receiver.getName());
+            if (variable.getConstant()) {
+                throw new RuntimeException("Cannot modify a constant variable: " + receiver.getName());
             }
-        } finally {
-            scope = scope.getParent();
+            variable.setValue(value);
         }
 
         return Environment.NIL;
     }
+
 
 
     @Override
@@ -155,28 +155,27 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.For ast) {
-        // visit the initialization statement
-        visit(ast.getInitialization());
+        if (ast.getInitialization() != null) {
+            visit(ast.getInitialization());
+        }
 
-        //loop while the condition is true
-        while (requireType(Boolean.class, visit(ast.getCondition()))) {
+        while (ast.getCondition() != null && requireType(Boolean.class, visit(ast.getCondition()))) {
+            scope = new Scope(scope);
             try {
-                scope = new Scope(scope);
-
-
                 for (Ast.Statement stmt : ast.getStatements()) {
                     visit(stmt);
                 }
-
-
-                visit(ast.getIncrement());
+                if (ast.getIncrement() != null) {
+                    visit(ast.getIncrement());
+                }
             } finally {
-                // Grab the parent scope and update
                 scope = scope.getParent();
             }
         }
         return Environment.NIL;
     }
+
+
 
 
 
@@ -221,9 +220,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         if (object.getValue() instanceof Comparable) {
             return (Comparable<Object>) object.getValue();
         } else {
-            throw new RuntimeException(
-                    "Expected a Comparable type but received this thing " + object.getValue().getClass().getName() + "."
-            );
+            throw new RuntimeException("Non-comparable type: " + object.getValue().getClass().getSimpleName());
         }
     }
 

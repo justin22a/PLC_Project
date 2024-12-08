@@ -61,7 +61,7 @@ public final class Parser {
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
-        // Check for type declaration
+        // Parse optional type
         String type = "Any"; // Default type
         if (match(":")) {
             if (!peek(Token.Type.IDENTIFIER)) {
@@ -71,19 +71,19 @@ public final class Parser {
             match(Token.Type.IDENTIFIER);
         }
 
-        // Optional initialization value
+        // Parse optional initialization value
         Optional<Ast.Expression> value = Optional.empty();
         if (match("=")) {
             value = Optional.of(parseExpression());
         }
 
-        // Ensure semicolon terminates the field
         if (!match(";")) {
-            throw new ParseException("Expected ';' at end of field declaration.", tokens.get(0).getIndex());
+            throw new ParseException("Expected ';' at end of field declaration.", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
         }
 
         return new Ast.Field(name, type, false, value);
     }
+
 
 
 
@@ -98,14 +98,12 @@ public final class Parser {
     public Ast.Method parseMethod() throws ParseException {
         match("DEF");
 
-        // Parse method name
         if (!peek(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected method name after 'DEF'", tokens.get(0).getIndex());
         }
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
-        // Parse parameters
         match("(");
         List<String> parameters = new ArrayList<>();
         List<String> parameterTypes = new ArrayList<>();
@@ -131,8 +129,7 @@ public final class Parser {
         }
         match(")");
 
-        // Parse optional return type
-        Optional<String> returnType = Optional.of("Any"); // Default to "Any"
+        Optional<String> returnType = Optional.of("Any");
         if (match(":")) {
             if (!peek(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected return type after ':'", tokens.get(0).getIndex());
@@ -141,7 +138,6 @@ public final class Parser {
             match(Token.Type.IDENTIFIER);
         }
 
-        // Parse method body
         if (!match("DO")) {
             throw new ParseException("Expected 'DO' to start method body", tokens.get(0).getIndex());
         }
@@ -154,6 +150,7 @@ public final class Parser {
 
         return new Ast.Method(name, parameters, parameterTypes, returnType, statements);
     }
+
 
 
 
@@ -265,40 +262,45 @@ public final class Parser {
      */
     public Ast.Statement.For parseForStatement() throws ParseException {
         match("FOR");
+
         if (!match("(")) {
-            throw new ParseException("Expected '('", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            throw new ParseException("Expected '(' after 'FOR'", tokens.get(0).getIndex());
         }
 
-        Ast.Statement initStatement = null;
+        Ast.Statement init = null;
         if (!peek(";")) {
-            initStatement = parseDeclarationStatement(); // Handle initialization if present
+            init = parseDeclarationStatement();
         }
         match(";");
 
-        Ast.Expression condExpression = null;
+        Ast.Expression condition = null;
         if (!peek(";")) {
-            condExpression = parseExpression(); // Handle condition if present
+            condition = parseExpression();
         }
         match(";");
 
-        Ast.Statement incrStatement = null;
+        Ast.Statement increment = null;
         if (!peek(")")) {
-            incrStatement = parseStatement(); // Handle increment if present
-            if (!(incrStatement instanceof Ast.Statement.Expression || incrStatement instanceof Ast.Statement.Assignment)) {
-                throw new ParseException("Invalid increment expression in for loop", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
+            increment = parseStatement();
+            if (!(increment instanceof Ast.Statement.Expression || increment instanceof Ast.Statement.Assignment)) {
+                throw new ParseException("Invalid increment expression in for loop", tokens.get(0).getIndex());
             }
         }
         match(")");
 
+        if (!match("DO")) {
+            throw new ParseException("Expected 'DO' to start for loop body", tokens.get(0).getIndex());
+        }
+
         List<Ast.Statement> statements = new ArrayList<>();
-        match("DO");
         while (!peek("END")) {
             statements.add(parseStatement());
         }
         match("END");
 
-        return new Ast.Statement.For(initStatement, condExpression, incrStatement, statements);
+        return new Ast.Statement.For(init, condition, increment, statements);
     }
+
 
 
 
