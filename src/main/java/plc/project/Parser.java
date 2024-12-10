@@ -1,13 +1,9 @@
 package plc.project;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import plc.project.Ast.Statement;
-
 /**
  * The parser takes the sequence of tokens emitted by the lexer and turns that
  * into a structured representation of the program, called the Abstract Syntax
@@ -46,7 +42,6 @@ public final class Parser {
         }
         return new Ast.Source(fields, methods);
     }
-
     /**
      * Parses the {@code field} rule. This method should only be called if the
      * next tokens start a field, aka {@code LET}.
@@ -86,73 +81,79 @@ public final class Parser {
 
 
 
-
-
-
-
-
     /**
      * Parses the {@code method} rule. This method should only be called if the
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
-        match("DEF");
-
-        if (!peek(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected method name after 'DEF'", tokens.get(0).getIndex());
+        if (!match("DEF")) {
+            throw new ParseException("Expected 'DEF'", tokens.get(0).getIndex());
         }
-        String name = tokens.get(0).getLiteral();
-        match(Token.Type.IDENTIFIER);
 
-        match("(");
+        String name = nextIdentifierWithCheck("Expected method name");
+
+            if (!match("(")) {
+            throw new ParseException("Expected '('", tokens.get(0).getIndex());
+        }
+
         List<String> parameters = new ArrayList<>();
-        List<String> parameterTypes = new ArrayList<>();
+        List<String> parameterTypeNames = new ArrayList<>();
 
-        while (!peek(")")) {
-            if (!parameters.isEmpty()) {
-                match(",");
-            }
-            if (!peek(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected parameter type", tokens.get(0).getIndex());
-            }
-            String type = tokens.get(0).getLiteral();
-            match(Token.Type.IDENTIFIER);
+            while (!peek(")")) {
+            parameters.add(nextIdentifierWithCheck("Expected parameter name"));
 
-            if (!peek(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected parameter name after type", tokens.get(0).getIndex());
+            if (!match(":")) {
+                throw new ParseException("Expected ':' after parameter name", tokens.get(0).getIndex());
             }
-            String paramName = tokens.get(0).getLiteral();
-            match(Token.Type.IDENTIFIER);
 
-            parameterTypes.add(type);
-            parameters.add(paramName);
+                parameterTypeNames.add(nextIdentifierWithCheck("Expected parameter type"));
+
+            if (!match(",") && !peek(")")) {
+                throw new ParseException("Expected ',' or ')'", tokens.get(0).getIndex());
+            }
         }
         match(")");
 
-        Optional<String> returnType = Optional.of("Any");
-        if (match(":")) {
-            if (!peek(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected return type after ':'", tokens.get(0).getIndex());
-            }
-            returnType = Optional.of(tokens.get(0).getLiteral());
-            match(Token.Type.IDENTIFIER);
-        }
+        String returnTypeName = parseOptionalReturnType();
 
-        if (!match("DO")) {
-            throw new ParseException("Expected 'DO' to start method body", tokens.get(0).getIndex());
-        }
+            expect("DO", "Expected 'DO' to start method body");
 
-        List<Ast.Statement> statements = new ArrayList<>();
-        while (!peek("END")) {
-            statements.add(parseStatement());
-        }
-        match("END");
+        List<Ast.Statement> statements = parseStatementsUntil("END");
 
-        return new Ast.Method(name, parameters, parameterTypes, returnType, statements);
+            return new Ast.Method(name, parameters, parameterTypeNames, Optional.of(returnTypeName), statements);
     }
 
+    private String nextIdentifierWithCheck(String errorMessage) throws ParseException {
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException(errorMessage, tokens.get(0).getIndex());
+        }
+        String identifier = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+            return identifier;
+        }
 
+    private String parseOptionalReturnType() throws ParseException {
+        if (peek(":")) {
+                match(":");
+            return nextIdentifierWithCheck("Expected return type");
+        }
+        return "Any";
+    }
 
+    private void expect(String expected, String errorMessage) throws ParseException {
+        if (    !match(expected)) {
+            throw new ParseException(errorMessage, tokens.get(0).getIndex());
+        }
+    }
+
+    private List<Ast.Statement> parseStatementsUntil(String terminal) throws ParseException {
+        List<Ast.Statement> statements = new ArrayList<>();
+        while (!peek(terminal)) {
+            statements.add(parseStatement());
+        }
+        match(terminal);
+        return statements;
+    }
 
 
     /**
@@ -193,7 +194,6 @@ public final class Parser {
             return new Ast.Statement.Expression(expr);
         }
     }
-
     /**
      * Parses a declaration statement from the {@code statement} rule. This
      * method should only be called if the next tokens start a declaration
@@ -221,7 +221,6 @@ public final class Parser {
 
         return new Ast.Statement.Declaration(name, type, value);
     }
-
     /**
      * Parses an if statement from the {@code statement} rule. This method
      * should only be called if the next tokens start an if statement, aka
@@ -254,7 +253,6 @@ public final class Parser {
         }
         return new Ast.Statement.If(condition, thenStatements, elseStatements);
     }
-
     /**
      * Parses a for statement from the {@code statement} rule. This method
      * should only be called if the next tokens start a for statement, aka
@@ -300,10 +298,6 @@ public final class Parser {
 
         return new Ast.Statement.For(init, condition, increment, statements);
     }
-
-
-
-
     /**
      * Parses a while statement from the {@code statement} rule. This method
      * should only be called if the next tokens start a while statement, aka
@@ -326,7 +320,6 @@ public final class Parser {
         }
         return new Ast.Statement.While(condExpression, statements);
     }
-
     /**
      * Parses a return statement from the {@code statement} rule. This method
      * should only be called if the next tokens start a return statement, aka
@@ -340,14 +333,12 @@ public final class Parser {
         }
         return new Ast.Statement.Return(returnVal);
     }
-
     /**
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
         return parseLogicalExpression();
     }
-
     /**
      * Parses the {@code logical-expression} rule.
      */
@@ -362,11 +353,6 @@ public final class Parser {
         return result;
     }
 
-
-
-    /**
-     * Parses the {@code comparison-expression} rule.
-     */
     public Ast.Expression parseComparisonExpression() throws ParseException {
         Ast.Expression result = parseAdditiveExpression();
         while (peek("<") || peek("<=") || peek(">") || peek(">=") || peek("==") || peek("!=")) {
@@ -377,8 +363,6 @@ public final class Parser {
         }
         return result;
     }
-
-
     /**
      * Parses the {@code additive-expression} rule.
      */
@@ -403,8 +387,6 @@ public final class Parser {
         }
         return result;
     }
-
-
     /**
      * Parses the {@code secondary-expression} rule.
      */
@@ -525,9 +507,6 @@ public final class Parser {
             throw new ParseException("Invalid primary expression", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
         }
     }
-
-
-
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
      * matches the given patterns. Unlike the lexer, the pattern is not a regex;
