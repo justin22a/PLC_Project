@@ -308,8 +308,6 @@ public final class Parser {
             throw new ParseException("Expected ')' after for loop parameters", tokens.get(0).getIndex());
         }
 
-        expect("DO", "Expected 'DO' to start the body of the for loop");
-
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {
             statements.add(parseStatement());
