@@ -19,6 +19,8 @@ import java.util.Optional;
  */
 public final class Parser {
 
+    private boolean parsingIncrement = false;
+
     private final TokenStream tokens;
 
     public Parser(List<Token> tokens) {
@@ -186,8 +188,9 @@ public final class Parser {
                 throw new ParseException("Expected expression after '='", -1);  // If no more tokens, handle gracefully
             }
             Ast.Expression valueExpr = parseExpression();  // Parse the right-hand side of the assignment
-
-            expectSemicolon();  // Ensure there is a semicolon after the assignment
+            if (!parsingIncrement) {
+                expectSemicolon();  // Ensure there is a semicolon after the assignment...unless parsing an increment statement
+            }
             return new Ast.Statement.Assignment(expr, valueExpr);
         } else {
             expectSemicolon();  // Ensure there is a semicolon after the expression
@@ -287,16 +290,14 @@ public final class Parser {
 
         Ast.Statement increment = null;
         if (!peek(")")) {
+            parsingIncrement = true;
             increment = parseStatement();
+            parsingIncrement = false;
             if (!(increment instanceof Ast.Statement.Expression || increment instanceof Ast.Statement.Assignment)) {
                 throw new ParseException("Invalid increment expression in for loop", tokens.get(0).getIndex());
             }
         }
         match(")");
-
-        if (!match("DO")) {
-            throw new ParseException("Expected 'DO' to start for loop body", tokens.get(0).getIndex());
-        }
 
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {
