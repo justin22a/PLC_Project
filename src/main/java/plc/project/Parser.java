@@ -164,36 +164,44 @@ public final class Parser {
     public Ast.Statement parseStatement() throws ParseException {
         if (peek("LET")) {
             return parseDeclarationStatement();
-        }
-        else if (peek("IF")) {
+        } else if (peek("IF")) {
             return parseIfStatement();
-        }
-        else if (peek("FOR")) {
+        } else if (peek("FOR")) {
             return parseForStatement();
-        }
-        else if (peek("WHILE")) {
+        } else if (peek("WHILE")) {
             return parseWhileStatement();
-        }
-        else if (peek("RETURN")) {
+        } else if (peek("RETURN")) {
             return parseReturnStatement();
+        } else {
+            return parseExpressionOrAssignment();
         }
-        else {
-            Ast.Expression expr = parseExpression();
-            if (match("=")) {
-                Ast.Expression optExpr = parseExpression();
-                if ((match(";"))) {
-                    return new Ast.Statement.Assignment(expr, optExpr);
-                }
-                else {
-                    throw new ParseException("Expected ';'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-                }
+    }
+
+    private Ast.Statement parseExpressionOrAssignment() throws ParseException {
+        Ast.Expression expr = parseExpression();  // Parse the left-hand side of the assignment or a standalone expression
+
+        if (match("=")) {
+            // If it's an assignment, expect another valid expression after '='
+            if (!tokens.has(0)) {
+                throw new ParseException("Expected expression after '='", -1);  // If no more tokens, handle gracefully
             }
-            if (!match(";")) {
-                throw new ParseException("Expected ';'", tokens.has(0) ? tokens.get(0).getIndex() : tokens.get(-1).getIndex());
-            }
+            Ast.Expression valueExpr = parseExpression();  // Parse the right-hand side of the assignment
+
+            expectSemicolon();  // Ensure there is a semicolon after the assignment
+            return new Ast.Statement.Assignment(expr, valueExpr);
+        } else {
+            expectSemicolon();  // Ensure there is a semicolon after the expression
             return new Ast.Statement.Expression(expr);
         }
     }
+
+    private void expectSemicolon() throws ParseException {
+        if (!match(";")) {
+            throw new ParseException("Expected ';'", tokens.has(0) ? tokens.get(0).getIndex() : -1);
+        }
+    }
+
+
     /**
      * Parses a declaration statement from the {@code statement} rule. This
      * method should only be called if the next tokens start a declaration
