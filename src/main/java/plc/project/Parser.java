@@ -278,26 +278,37 @@ public final class Parser {
 
         Ast.Statement init = null;
         if (!peek(";")) {
-            init = parseDeclarationStatement();
+            parsingIncrement = true;  // Temporarily disable semicolon enforcement for initialization
+            init = parseExpressionOrAssignment();  // Could be an expression or an assignment
+            parsingIncrement = false;
+            if (!match(";")) {
+                throw new ParseException("Expected ';' after initialization part of for loop", tokens.get(0).getIndex());
+            }
+        } else {
+            match(";");  // Handle the empty initialization
         }
-        match(";");
 
         Ast.Expression condition = null;
         if (!peek(";")) {
-            condition = parseExpression();
+            condition = parseExpression();  // Parse the condition part of the for loop
+            if (!match(";")) {
+                throw new ParseException("Expected ';' after condition in for loop", tokens.get(0).getIndex());
+            }
+        } else {
+            match(";");  // Handle the empty condition
         }
-        match(";");
 
         Ast.Statement increment = null;
         if (!peek(")")) {
-            parsingIncrement = true;
-            increment = parseStatement();
+            parsingIncrement = true;  // Temporarily disable semicolon enforcement for increment
+            increment = parseExpressionOrAssignment();  // Could be an expression or an assignment
             parsingIncrement = false;
-            if (!(increment instanceof Ast.Statement.Expression || increment instanceof Ast.Statement.Assignment)) {
-                throw new ParseException("Invalid increment expression in for loop", tokens.get(0).getIndex());
-            }
         }
-        match(")");
+        if (!match(")")) {
+            throw new ParseException("Expected ')' after for loop parameters", tokens.get(0).getIndex());
+        }
+
+        expect("DO", "Expected 'DO' to start the body of the for loop");
 
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {
@@ -307,6 +318,7 @@ public final class Parser {
 
         return new Ast.Statement.For(init, condition, increment, statements);
     }
+
     /**
      * Parses a while statement from the {@code statement} rule. This method
      * should only be called if the next tokens start a while statement, aka
