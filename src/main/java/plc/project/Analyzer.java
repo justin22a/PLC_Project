@@ -362,7 +362,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
             case ">=":
             case "==":
             case "!=":
-                if (!leftType.equals(rightType) || !Environment.Type.COMPARABLE.getScope().lookupVariable(leftType.getName()).getType().equals(leftType)) {
+                if (!leftType.equals(rightType) ) {
                     throw new RuntimeException("Comparison operators require both operands to be Comparable and of the same type.");
                 }
                 ast.setType(Environment.Type.BOOLEAN);

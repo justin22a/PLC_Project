@@ -40,7 +40,7 @@ public final class Scope {
         } else if (parent != null) {
             return parent.lookupVariable(name);
         } else {
-            throw new RuntimeException("The variable " + name + " is not defined in this scope.");
+            throw new RuntimeException("The variable " + name + " is not defined in this scope");
         }
     }
 
